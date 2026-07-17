@@ -1,0 +1,8 @@
+﻿@import url("https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap");
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+:root { color-scheme: light; }
+body { background: #fdf9f4; color: #1c1c19; font-family: Inter, sans-serif; }
+button, input { font: inherit; }
+.auth-card-shadow { box-shadow: 0 10px 40px -10px rgba(28, 28, 25, 0.15); }

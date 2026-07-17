@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Security Settings | Foxly Guardian</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700;900&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@100..900&family=Inter:wght@100..900&display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .fox-paw-animation {
+            display: flex;
+            gap: 4px;
+        }
+        .paw-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #a03b00;
+            opacity: 0.4;
+            animation: fox-walk 1.2s infinite ease-in-out;
+        }
+        .paw-dot:nth-child(2) { animation-delay: 0.3s; }
+        .paw-dot:nth-child(3) { animation-delay: 0.6s; }
+        .paw-dot:nth-child(4) { animation-delay: 0.9s; }
+
+        @keyframes fox-walk {
+            0%, 100% { opacity: 0.4; transform: translateY(0); }
+            50% { opacity: 1; transform: translateY(-4px); }
+        }
+
+        .auth-card-shadow {
+            box-shadow: 0 10px 40px -10px rgba(28, 28, 25, 0.08);
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-bright": "#fdf9f4",
+                        "secondary-container": "#eae1db",
+                        "on-surface-variant": "#57423a",
+                        "surface-container-low": "#f7f3ee",
+                        "secondary-fixed": "#eae1db",
+                        "on-primary-container": "#fffbff",
+                        "tertiary-fixed-dim": "#a1d2aa",
+                        "inverse-surface": "#31302d",
+                        "surface-variant": "#e6e2dd",
+                        "background": "#fdf9f4",
+                        "surface-container": "#f1ede8",
+                        "on-primary-fixed-variant": "#7d2d00",
+                        "secondary": "#635d59",
+                        "on-tertiary-container": "#f6fff4",
+                        "on-error": "#ffffff",
+                        "tertiary-container": "#507f5c",
+                        "primary-fixed": "#ffdbcd",
+                        "on-background": "#1c1c19",
+                        "inverse-primary": "#ffb597",
+                        "on-secondary-container": "#69635f",
+                        "tertiary": "#386545",
+                        "surface-container-highest": "#e6e2dd",
+                        "secondary-fixed-dim": "#cdc5c0",
+                        "on-secondary-fixed": "#1f1b18",
+                        "on-tertiary-fixed-variant": "#225031",
+                        "primary-container": "#c1531b",
+                        "outline-variant": "#dec0b5",
+                        "outline": "#8b7268",
+                        "on-surface": "#1c1c19",
+                        "on-tertiary": "#ffffff",
+                        "tertiary-fixed": "#bcefc5",
+                        "surface-dim": "#ddd9d5",
+                        "error-container": "#ffdad6",
+                        "on-secondary-fixed-variant": "#4b4642",
+                        "on-secondary": "#ffffff",
+                        "surface-container-lowest": "#ffffff",
+                        "error": "#ba1a1a",
+                        "surface": "#fdf9f4",
+                        "primary": "#a03b00",
+                        "on-tertiary-fixed": "#00210d",
+                        "on-primary-fixed": "#360f00",
+                        "on-primary": "#ffffff",
+                        "surface-container-high": "#ebe8e3",
+                        "inverse-on-surface": "#f4f0eb",
+                        "surface-tint": "#a43d02",
+                        "on-error-container": "#93000a",
+                        "primary-fixed-dim": "#ffb597"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "auth-card-max": "440px",
+                        "grid-gutter": "1.5rem",
+                        "stack-gap-sm": "0.75rem",
+                        "stack-gap-lg": "2rem",
+                        "container-padding": "2rem",
+                        "stack-gap-md": "1.5rem"
+                    },
+                    "fontFamily": {
+                        "mono-code": ["JetBrains Mono"],
+                        "headline-md": ["Hanken Grotesk"],
+                        "display": ["Hanken Grotesk"],
+                        "headline-lg-mobile": ["Hanken Grotesk"],
+                        "label-md": ["Inter"],
+                        "headline-lg": ["Hanken Grotesk"],
+                        "body-lg": ["Inter"],
+                        "body-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "mono-code": ["15px", { "lineHeight": "24px", "letterSpacing": "0.05em", "fontWeight": "500" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "display": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "headline-lg-mobile": ["28px", { "lineHeight": "36px", "fontWeight": "600" }],
+                        "label-md": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }]
+                    }
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-surface-bright text-on-surface font-body-md selection:bg-primary-fixed-dim">
+<!-- TopAppBar -->
+<header class="w-full top-0 sticky bg-surface-bright z-40 border-none">
+<div class="flex justify-between items-center px-grid-gutter py-4 w-full ml-auto">
+<div class="flex items-center gap-3">
+<span class="font-headline-lg text-headline-lg font-bold text-primary">Foxly</span>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 text-on-surface-variant hover:text-primary transition-colors duration-200">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<div class="w-10 h-10 rounded-full overflow-hidden border border-outline-variant">
+<img class="w-full h-full object-cover" data-alt="A clean, professional headshot of a user with a neutral background. The lighting is soft and warm, reflecting the Foxly brand's organic professional aesthetic. The image is crisp with high detail, set in a modern tech-integrated environment with warm wood tones and minimalist design elements." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBLOoDKrM_scYaf9TZt8inaLDaEsWmrzjLEdP2-5HJw5x9ZKIacGM8nMw_5ESpOMA3xsHtXNSEDQAwniWdaMQ0WBCCwJpSZJEwZ7STFmuGhTvNBAU73Fe_UQgyFvg9cI0NSJMjIuyOsJzsfKrusnvRi8adSsrxaKcbXAiNtGMY3tfjuekTz5y_Zr-TR2yTEL_zPo03C_MUvWpjf4YZedfRTA0_ppyiPo5vERJcR-OAxaJ761tbnjPx5O1VlM9yotMGgtosVeSioNPdA"/>
+</div>
+</div>
+</div>
+</header>
+<div class="flex min-h-screen">
+<!-- SideNavBar -->
+<aside class="hidden md:flex h-screen w-64 fixed left-0 top-0 bg-surface-container flex-col p-4 gap-stack-gap-md border-r border-outline-variant z-50">
+<div class="mb-4">
+<h1 class="font-headline-lg text-headline-lg font-black text-primary">Foxly</h1>
+<div class="mt-4 flex flex-col gap-1">
+<span class="font-headline-md text-headline-md">Guardian View</span>
+<span class="font-label-md text-label-md text-secondary">Trust Level: High</span>
+</div>
+</div>
+<nav class="flex flex-col gap-2 flex-grow">
+<a class="flex items-center gap-3 text-secondary px-4 py-3 hover:bg-surface-variant rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-label-md text-label-md">Dashboard</span>
+</a>
+<!-- Active Tab: Security -->
+<a class="flex items-center gap-3 bg-primary-container text-on-primary-container rounded-lg px-4 py-3 active:scale-95 transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="security" style="font-variation-settings: 'FILL' 1;">security</span>
+<span class="font-label-md text-label-md">Security</span>
+</a>
+<a class="flex items-center gap-3 text-secondary px-4 py-3 hover:bg-surface-variant rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="verified_user">verified_user</span>
+<span class="font-label-md text-label-md">Approvals</span>
+</a>
+<a class="flex items-center gap-3 text-secondary px-4 py-3 hover:bg-surface-variant rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="devices">devices</span>
+<span class="font-label-md text-label-md">Devices</span>
+</a>
+<a class="flex items-center gap-3 text-secondary px-4 py-3 hover:bg-surface-variant rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="history">history</span>
+<span class="font-label-md text-label-md">Logs</span>
+</a>
+</nav>
+<div class="mt-auto flex flex-col gap-2 pt-4 border-t border-outline-variant">
+<a class="flex items-center gap-3 text-secondary px-4 py-3 hover:bg-surface-variant rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</a>
+<a class="flex items-center gap-3 text-secondary px-4 py-3 hover:bg-surface-variant rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+<span class="font-label-md text-label-md">Logout</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-grow md:ml-64 p-grid-gutter pb-24">
+<div class="max-w-4xl mx-auto space-y-stack-gap-lg">
+<!-- Section Header -->
+<section>
+<h2 class="font-headline-lg text-headline-lg text-on-background mb-2">Security Settings</h2>
+<p class="text-secondary font-body-md">Manage your account's protection and authentication methods.</p>
+</section>
+<!-- Passkeys Section -->
+<section class="bg-surface-container-lowest rounded-xl p-6 auth-card-shadow border border-outline-variant">
+<div class="flex items-start justify-between mb-stack-gap-sm">
+<div class="flex gap-4">
+<div class="bg-primary-fixed w-12 h-12 rounded-lg flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-3xl" data-icon="key">key</span>
+</div>
+<div>
+<h3 class="font-headline-md text-headline-md">Passkeys</h3>
+<p class="text-secondary font-body-md">Biometric or hardware keys for secure, passwordless login.</p>
+</div>
+</div>
+<button class="bg-primary hover:bg-primary-container text-white px-6 py-2.5 rounded-full font-label-md text-label-md transition-all active:scale-95">
+                            + Add another passkey
+                        </button>
+</div>
+<div class="mt-stack-gap-md space-y-3">
+<div class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="font-body-md font-bold text-on-surface">Primary passkey</span>
+<span class="bg-tertiary-fixed text-on-tertiary-fixed-variant px-2 py-0.5 rounded text-xs font-label-md">Active on this device</span>
+</div>
+<span class="text-secondary font-label-md">Added Sep 24, 2023</span>
+</div>
+</div>
+</section>
+<!-- Backup Codes Section -->
+<section class="bg-surface-container-lowest rounded-xl p-6 auth-card-shadow border border-outline-variant">
+<div class="flex items-start justify-between">
+<div class="flex gap-4">
+<div class="bg-secondary-fixed w-12 h-12 rounded-lg flex items-center justify-center text-on-secondary-container">
+<span class="material-symbols-outlined text-3xl" data-icon="shield">shield</span>
+</div>
+<div>
+<h3 class="font-headline-md text-headline-md">Backup Codes</h3>
+<p class="text-on-surface-variant font-body-md mt-1">
+<span class="font-bold text-on-surface">10 codes remaining</span>. Use these if you lose access to your other login methods.
+                                </p>
+<button class="mt-4 text-primary font-label-md hover:underline inline-flex items-center gap-1 transition-all">
+                                    Regenerate codes
+                                    <span class="material-symbols-outlined text-sm" data-icon="refresh">refresh</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Login Verification (Read-Only) -->
+<section class="bg-surface-container rounded-xl p-6 border-l-4 border-tertiary">
+<div class="flex gap-4 items-center">
+<div class="text-tertiary">
+<span class="material-symbols-outlined text-3xl" data-icon="verified">verified</span>
+</div>
+<div class="flex-grow">
+<h3 class="font-label-md text-label-md text-tertiary uppercase tracking-wider mb-1">Advanced Guardian Protection</h3>
+<p class="text-on-surface-variant font-body-md">
+                                Foxly automatically asks for extra confirmation when a sign-in looks unusual. This layer of security is always active for your protection.
+                            </p>
+</div>
+<div class="fox-paw-animation" title="Guardian active">
+<div class="paw-dot"></div>
+<div class="paw-dot"></div>
+<div class="paw-dot"></div>
+<div class="paw-dot"></div>
+</div>
+</div>
+</section>
+<!-- Danger Zone -->
+<section class="mt-stack-gap-lg pt-stack-gap-md border-t border-outline-variant">
+<h3 class="font-label-md text-label-md text-on-secondary-fixed-variant uppercase tracking-widest mb-stack-gap-sm">Danger Zone</h3>
+<div class="bg-surface-container-lowest rounded-xl overflow-hidden border border-outline-variant">
+<div class="p-6 flex items-center justify-between border-b border-outline-variant hover:bg-surface-container-low transition-colors group">
+<div>
+<p class="font-body-md font-bold text-on-surface">Sign out of all devices</p>
+<p class="text-secondary text-sm">Force logout on all active sessions excluding this one.</p>
+</div>
+<button class="text-on-secondary-fixed-variant group-hover:text-error font-label-md transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+                                Sign out
+                            </button>
+</div>
+<div class="p-6 flex items-center justify-between hover:bg-error-container transition-colors group">
+<div>
+<p class="font-body-md font-bold text-on-surface">Delete account</p>
+<p class="text-secondary text-sm">Permanently remove your account and all associated data.</p>
+</div>
+<button class="text-error font-label-md hover:bg-error hover:text-white px-4 py-2 rounded-lg transition-all">
+                                Delete forever
+                            </button>
+</div>
+</div>
+</section>
+</div>
+</main>
+</div>
+<!-- Mobile Bottom Navigation (Syncing with JSON Logic) -->
+<nav class="md:hidden fixed bottom-0 left-0 right-0 bg-surface-container h-16 flex items-center justify-around px-4 z-50 shadow-lg">
+<button class="flex flex-col items-center text-secondary transition-all">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="text-[10px] font-label-md">Dashboard</span>
+</button>
+<button class="flex flex-col items-center text-primary transition-all">
+<span class="material-symbols-outlined" data-icon="security" style="font-variation-settings: 'FILL' 1;">security</span>
+<span class="text-[10px] font-label-md">Security</span>
+</button>
+<button class="flex flex-col items-center text-secondary transition-all">
+<span class="material-symbols-outlined" data-icon="devices">devices</span>
+<span class="text-[10px] font-label-md">Devices</span>
+</button>
+<button class="flex flex-col items-center text-secondary transition-all">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="text-[10px] font-label-md">Settings</span>
+</button>
+</nav>
+<script>
+        // Simple micro-interaction for buttons
+        document.querySelectorAll('button').forEach(btn => {
+            btn.addEventListener('mousedown', () => {
+                btn.style.transform = 'scale(0.98)';
+            });
+            btn.addEventListener('mouseup', () => {
+                btn.style.transform = 'scale(1)';
+            });
+        });
+
+        // Simulating some dynamic behavior for regeneration
+        const regenBtn = document.querySelector('[data-icon="refresh"]').parentElement;
+        if(regenBtn) {
+            regenBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const icon = regenBtn.querySelector('.material-symbols-outlined');
+                icon.style.transition = 'transform 0.5s ease-in-out';
+                icon.style.transform = 'rotate(360deg)';
+                setTimeout(() => {
+                    icon.style.transform = 'rotate(0deg)';
+                }, 500);
+            });
+        }
+    </script>
+</body></html>

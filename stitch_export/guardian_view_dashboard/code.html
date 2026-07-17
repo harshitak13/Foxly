@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Foxly | Guardian View Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800;900&amp;family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .fox-paw-loader {
+            display: flex;
+            gap: 4px;
+        }
+        .fox-paw-pad {
+            width: 8px;
+            height: 8px;
+            background-color: #a03b00;
+            border-radius: 2px;
+            opacity: 0.2;
+            animation: paw-walk 1.2s infinite;
+        }
+        .fox-paw-pad:nth-child(2) { animation-delay: 0.3s; }
+        .fox-paw-pad:nth-child(3) { animation-delay: 0.6s; }
+        .fox-paw-pad:nth-child(4) { animation-delay: 0.9s; }
+
+        @keyframes paw-walk {
+            0%, 100% { opacity: 0.2; transform: translateY(0); }
+            25% { opacity: 1; transform: translateY(-4px); }
+        }
+
+        .auth-card-shadow {
+            box-shadow: 0 10px 40px -10px rgba(28, 28, 25, 0.15);
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-bright": "#fdf9f4",
+                      "secondary-container": "#eae1db",
+                      "on-surface-variant": "#57423a",
+                      "surface-container-low": "#f7f3ee",
+                      "secondary-fixed": "#eae1db",
+                      "on-primary-container": "#fffbff",
+                      "tertiary-fixed-dim": "#a1d2aa",
+                      "inverse-surface": "#31302d",
+                      "surface-variant": "#e6e2dd",
+                      "background": "#fdf9f4",
+                      "surface-container": "#f1ede8",
+                      "on-primary-fixed-variant": "#7d2d00",
+                      "secondary": "#635d59",
+                      "on-tertiary-container": "#f6fff4",
+                      "on-error": "#ffffff",
+                      "tertiary-container": "#507f5c",
+                      "primary-fixed": "#ffdbcd",
+                      "on-background": "#1c1c19",
+                      "inverse-primary": "#ffb597",
+                      "on-secondary-container": "#69635f",
+                      "tertiary": "#386545",
+                      "surface-container-highest": "#e6e2dd",
+                      "secondary-fixed-dim": "#cdc5c0",
+                      "on-secondary-fixed": "#1f1b18",
+                      "on-tertiary-fixed-variant": "#225031",
+                      "primary-container": "#c1531b",
+                      "outline-variant": "#dec0b5",
+                      "outline": "#8b7268",
+                      "on-surface": "#1c1c19",
+                      "on-tertiary": "#ffffff",
+                      "tertiary-fixed": "#bcefc5",
+                      "surface-dim": "#ddd9d5",
+                      "error-container": "#ffdad6",
+                      "on-secondary-fixed-variant": "#4b4642",
+                      "on-secondary": "#ffffff",
+                      "surface-container-lowest": "#ffffff",
+                      "error": "#ba1a1a",
+                      "surface": "#fdf9f4",
+                      "primary": "#a03b00",
+                      "on-tertiary-fixed": "#00210d",
+                      "on-primary-fixed": "#360f00",
+                      "on-primary": "#ffffff",
+                      "surface-container-high": "#ebe8e3",
+                      "inverse-on-surface": "#f4f0eb",
+                      "surface-tint": "#a43d02",
+                      "on-error-container": "#93000a",
+                      "primary-fixed-dim": "#ffb597"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "auth-card-max": "440px",
+                      "grid-gutter": "1.5rem",
+                      "stack-gap-sm": "0.75rem",
+                      "stack-gap-lg": "2rem",
+                      "container-padding": "2rem",
+                      "stack-gap-md": "1.5rem"
+              },
+              "fontFamily": {
+                      "mono-code": ["JetBrains Mono"],
+                      "headline-md": ["Hanken Grotesk"],
+                      "display": ["Hanken Grotesk"],
+                      "headline-lg-mobile": ["Hanken Grotesk"],
+                      "label-md": ["Inter"],
+                      "headline-lg": ["Hanken Grotesk"],
+                      "body-lg": ["Inter"],
+                      "body-md": ["Inter"]
+              },
+              "fontSize": {
+                      "mono-code": ["15px", {"lineHeight": "24px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                      "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                      "display": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "headline-lg-mobile": ["28px", {"lineHeight": "36px", "fontWeight": "600"}],
+                      "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600"}],
+                      "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                      "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                      "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+              }
+            },
+          },
+        }
+      </script>
+</head>
+<body class="bg-surface-bright text-on-surface font-body-md min-h-screen selection:bg-primary-fixed">
+<!-- Desktop Sidebar -->
+<nav class="hidden md:flex flex-col h-screen w-64 fixed left-0 top-0 bg-surface-container border-r border-outline-variant p-4 gap-stack-gap-md z-50">
+<div class="flex flex-col gap-1 mb-4">
+<h1 class="font-headline-lg text-headline-lg font-black text-primary">Foxly</h1>
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 bg-tertiary rounded-full"></div>
+<span class="font-label-md text-label-md text-secondary">Trust Level: High</span>
+</div>
+</div>
+<div class="flex flex-col gap-2 flex-grow">
+<!-- Dashboard Active State -->
+<a class="flex items-center gap-3 bg-primary-container text-on-primary-container rounded-lg px-4 py-3 transition-all scale-98" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-label-md">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 text-secondary px-4 py-3 hover:bg-surface-variant rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="security">security</span>
+<span class="font-label-md">Security</span>
+</a>
+<a class="flex items-center gap-3 text-secondary px-4 py-3 hover:bg-surface-variant rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="verified_user">verified_user</span>
+<span class="font-label-md">Approvals</span>
+</a>
+<a class="flex items-center gap-3 text-secondary px-4 py-3 hover:bg-surface-variant rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="devices">devices</span>
+<span class="font-label-md">Devices</span>
+</a>
+<a class="flex items-center gap-3 text-secondary px-4 py-3 hover:bg-surface-variant rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="history">history</span>
+<span class="font-label-md">Logs</span>
+</a>
+<button class="mt-6 bg-primary text-on-primary font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 hover:opacity-90 active:scale-95 transition-all">
+<span class="material-symbols-outlined text-[20px]" data-icon="add">add</span>
+<span class="font-label-md">+ Add Device</span>
+</button>
+</div>
+<div class="flex flex-col gap-1 border-t border-outline-variant pt-4">
+<a class="flex items-center gap-3 text-secondary px-4 py-3 hover:bg-surface-variant rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-label-md">Settings</span>
+</a>
+<a class="flex items-center gap-3 text-secondary px-4 py-3 hover:bg-surface-variant rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+<span class="font-label-md">Logout</span>
+</a>
+</div>
+</nav>
+<!-- Top Bar (Mobile) -->
+<header class="md:hidden flex justify-between items-center px-grid-gutter py-4 w-full sticky top-0 bg-surface-bright z-40">
+<h1 class="font-headline-lg text-headline-lg font-bold text-primary">Foxly</h1>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-primary" data-icon="notifications">notifications</span>
+<div class="w-8 h-8 rounded-full bg-secondary-container overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A focused studio portrait of a professional user, styled with soft, natural lighting and warm undertones consistent with a premium security platform. The individual has a confident yet approachable expression, representing the 'Guardian' persona. The background is a clean, neutral gradient of warm off-white and soft tan, emphasizing clarity and security." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAIjOgJwvG_YRaZaRIDzqCTDhbk63FSaN202s6lYzEnyMQxYOAGa0j76v_Z6tOAL7SAUHoWLNCa0ntzyO2btSJdxWEECI-eJvzDA9plATNmRW74uMMKDn1a1LJKWltqqyOxLOTUe1XF9lSgM-BYusyYNvVRF1kZHJhIcrJO9wdTO1C6r8EvEqHBPSqq5mTLCTnPgR-KcX90XuyeJF953fTYjyjOgUqlOZM71EClIqOFvOY0x0QbPqPiV0wo-0GBLJWooerZuj-4-LQP"/>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="md:ml-64 p-grid-gutter lg:p-12 min-h-screen">
+<div class="max-w-6xl mx-auto space-y-stack-gap-lg">
+<!-- Header Section -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+<div>
+<p class="font-label-md text-primary font-bold uppercase tracking-widest mb-2">System Status</p>
+<h2 class="font-headline-lg text-headline-lg text-on-surface">Guardian Overview</h2>
+</div>
+<div class="flex items-center gap-3 bg-surface-container-high px-4 py-2 rounded-full border border-outline-variant">
+<span class="material-symbols-outlined text-tertiary text-[20px]" data-icon="shield" style="font-variation-settings: 'FILL' 1;">shield</span>
+<span class="font-label-md text-on-surface">Last Scanned: 2m ago</span>
+</div>
+</div>
+<!-- Status Summary Card -->
+<section class="bg-surface-container-lowest auth-card-shadow rounded-2xl p-6 md:p-8 flex flex-col md:flex-row items-center gap-6 border border-outline-variant">
+<div class="w-16 h-16 md:w-20 md:h-20 rounded-full bg-tertiary-fixed flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined text-[40px]" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<div class="flex-grow text-center md:text-left">
+<h3 class="font-headline-md text-headline-md text-on-surface mb-1">Your account is secure</h3>
+<div class="flex flex-wrap justify-center md:justify-start items-center gap-x-2 gap-y-1 text-secondary font-body-md">
+<span>Last sign-in:</span>
+<span class="font-bold text-on-surface">MacBook Pro 14</span>
+<span class="hidden md:inline text-outline-variant">•</span>
+<span>San Francisco, US</span>
+<span class="hidden md:inline text-outline-variant">•</span>
+<span class="text-tertiary font-bold">Just now</span>
+</div>
+</div>
+<button class="w-full md:w-auto px-6 py-3 border border-outline text-on-surface rounded-xl font-bold hover:bg-surface-variant transition-colors">
+                    Review Security
+                </button>
+</section>
+<!-- Stat Tiles (Bento Style) -->
+<section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-stack-gap-md">
+<!-- Stat Item -->
+<div class="bg-white p-6 rounded-2xl border border-outline-variant hover:border-primary transition-all group">
+<div class="flex justify-between items-start mb-4">
+<span class="material-symbols-outlined text-primary group-hover:scale-110 transition-transform" data-icon="devices">devices</span>
+<span class="text-[12px] font-bold px-2 py-1 bg-surface-container text-secondary rounded">SYSTEM</span>
+</div>
+<div class="font-display text-display text-on-surface leading-tight">3</div>
+<div class="font-label-md text-secondary mt-1">Active Devices</div>
+</div>
+<!-- Stat Item -->
+<div class="bg-white p-6 rounded-2xl border border-outline-variant hover:border-primary transition-all group">
+<div class="flex justify-between items-start mb-4">
+<span class="material-symbols-outlined text-primary group-hover:scale-110 transition-transform" data-icon="pending_actions">pending_actions</span>
+<span class="text-[12px] font-bold px-2 py-1 bg-primary-fixed text-primary rounded">ACTION</span>
+</div>
+<div class="font-display text-display text-on-surface leading-tight">1</div>
+<div class="font-label-md text-secondary mt-1">Pending Approval</div>
+</div>
+<!-- Stat Item -->
+<div class="bg-white p-6 rounded-2xl border border-outline-variant hover:border-primary transition-all group">
+<div class="flex justify-between items-start mb-4">
+<span class="material-symbols-outlined text-primary group-hover:scale-110 transition-transform" data-icon="key">key</span>
+<span class="text-[12px] font-bold px-2 py-1 bg-surface-container text-secondary rounded">RESERVE</span>
+</div>
+<div class="font-display text-display text-on-surface leading-tight">10</div>
+<div class="font-label-md text-secondary mt-1">Backup Codes Unused</div>
+</div>
+<!-- Stat Item (Warning state) -->
+<div class="bg-white p-6 rounded-2xl border border-outline-variant hover:border-tertiary transition-all group">
+<div class="flex justify-between items-start mb-4">
+<span class="material-symbols-outlined text-tertiary group-hover:scale-110 transition-transform" data-icon="flag">flag</span>
+<span class="text-[12px] font-bold px-2 py-1 bg-tertiary-fixed text-tertiary rounded">CLEAN</span>
+</div>
+<div class="font-display text-display text-on-surface leading-tight">0</div>
+<div class="font-label-md text-secondary mt-1">Recent Risk Flags</div>
+</div>
+</section>
+<!-- Activity and Device Map Section -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-stack-gap-lg">
+<!-- Recent Activity List -->
+<section class="lg:col-span-2 space-y-stack-gap-md">
+<div class="flex items-center justify-between">
+<h3 class="font-headline-md text-headline-md text-on-surface">Recent Activity</h3>
+<a class="text-primary font-bold font-label-md hover:underline" href="#">View All</a>
+</div>
+<div class="bg-white rounded-2xl border border-outline-variant overflow-hidden">
+<!-- Activity Item -->
+<div class="p-5 flex items-center gap-4 hover:bg-surface-container-low transition-colors border-b border-outline-variant last:border-b-0">
+<div class="w-10 h-10 rounded-full bg-primary-fixed flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[20px]" data-icon="laptop_mac">laptop_mac</span>
+</div>
+<div class="flex-grow">
+<p class="font-label-md text-on-surface">Sign-in from MacBook Pro</p>
+<p class="text-[13px] text-secondary">Chrome · San Francisco, US</p>
+</div>
+<div class="text-right">
+<span class="font-mono-code text-[12px] text-primary">Just now</span>
+</div>
+</div>
+<!-- Activity Item -->
+<div class="p-5 flex items-center gap-4 hover:bg-surface-container-low transition-colors border-b border-outline-variant last:border-b-0">
+<div class="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-[20px]" data-icon="phone_iphone">phone_iphone</span>
+</div>
+<div class="flex-grow">
+<p class="font-label-md text-on-surface">New Device Added: iPhone 15 Pro</p>
+<p class="text-[13px] text-secondary">Official App · London, UK</p>
+</div>
+<div class="text-right">
+<span class="font-mono-code text-[12px] text-secondary">2 hours ago</span>
+</div>
+</div>
+<!-- Activity Item -->
+<div class="p-5 flex items-center gap-4 hover:bg-surface-container-low transition-colors border-b border-outline-variant last:border-b-0">
+<div class="w-10 h-10 rounded-full bg-tertiary-fixed flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined text-[20px]" data-icon="passkey">passkey</span>
+</div>
+<div class="flex-grow">
+<p class="font-label-md text-on-surface">Passkey Setup Complete</p>
+<p class="text-[13px] text-secondary">Hardware Token Auth</p>
+</div>
+<div class="text-right">
+<span class="font-mono-code text-[12px] text-secondary">Yesterday</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Fox-Style Interactive Card -->
+<section class="space-y-stack-gap-md">
+<h3 class="font-headline-md text-headline-md text-on-surface">Guardian Insights</h3>
+<div class="bg-inverse-surface text-inverse-on-surface p-6 rounded-2xl relative overflow-hidden h-[340px] flex flex-col justify-between">
+<div class="relative z-10">
+<p class="font-label-md text-primary-fixed mb-2 uppercase tracking-widest">Active Protection</p>
+<h4 class="font-headline-md text-white">Always Watching.</h4>
+<p class="text-secondary-fixed-dim mt-2 body-md">Foxly has blocked 14 unauthorized probe attempts this week.</p>
+</div>
+<!-- Visual Micro-interaction Area -->
+<div class="absolute right-[-40px] bottom-[-40px] opacity-20">
+<span class="material-symbols-outlined text-[240px] text-primary" data-icon="visibility">visibility</span>
+</div>
+<div class="relative z-10 bg-on-secondary-fixed-variant p-4 rounded-xl border border-white/10">
+<div class="flex items-center justify-between mb-2">
+<span class="font-label-md">Current Scanning State</span>
+<div class="fox-paw-loader">
+<div class="fox-paw-pad"></div>
+<div class="fox-paw-pad"></div>
+<div class="fox-paw-pad"></div>
+<div class="fox-paw-pad"></div>
+</div>
+</div>
+<div class="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
+<div class="bg-primary h-full w-2/3 transition-all duration-1000" id="scan-progress"></div>
+</div>
+</div>
+</div>
+</section>
+</div>
+</div>
+</main>
+<!-- Mobile Navigation Bar -->
+<nav class="md:hidden fixed bottom-0 left-0 right-0 bg-surface-container border-t border-outline-variant flex justify-around items-center py-3 z-50">
+<a class="flex flex-col items-center gap-1 text-primary" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+<span class="text-[10px] font-bold">Home</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-secondary" href="#">
+<span class="material-symbols-outlined" data-icon="devices">devices</span>
+<span class="text-[10px] font-medium">Devices</span>
+</a>
+<div class="relative -top-6">
+<button class="bg-primary text-on-primary w-14 h-14 rounded-full shadow-lg flex items-center justify-center active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-[32px]" data-icon="add">add</span>
+</button>
+</div>
+<a class="flex flex-col items-center gap-1 text-secondary" href="#">
+<span class="material-symbols-outlined" data-icon="security">security</span>
+<span class="text-[10px] font-medium">Security</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-secondary" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="text-[10px] font-medium">Settings</span>
+</a>
+</nav>
+<script>
+        // Simple progress bar animation
+        document.addEventListener('DOMContentLoaded', () => {
+            const progressBar = document.getElementById('scan-progress');
+            let width = 66;
+            setInterval(() => {
+                width = width >= 100 ? 10 : width + Math.floor(Math.random() * 5);
+                progressBar.style.width = width + '%';
+            }, 3000);
+        });
+    </script>
+</body></html>

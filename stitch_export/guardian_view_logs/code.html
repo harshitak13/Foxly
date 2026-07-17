@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Foxly Guardian View | Audit Logs</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;900&amp;family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-bright": "#fdf9f4",
+                        "secondary-container": "#eae1db",
+                        "on-surface-variant": "#57423a",
+                        "surface-container-low": "#f7f3ee",
+                        "secondary-fixed": "#eae1db",
+                        "on-primary-container": "#fffbff",
+                        "tertiary-fixed-dim": "#a1d2aa",
+                        "inverse-surface": "#31302d",
+                        "surface-variant": "#e6e2dd",
+                        "background": "#fdf9f4",
+                        "surface-container": "#f1ede8",
+                        "on-primary-fixed-variant": "#7d2d00",
+                        "secondary": "#635d59",
+                        "on-tertiary-container": "#f6fff4",
+                        "on-error": "#ffffff",
+                        "tertiary-container": "#507f5c",
+                        "primary-fixed": "#ffdbcd",
+                        "on-background": "#1c1c19",
+                        "inverse-primary": "#ffb597",
+                        "on-secondary-container": "#69635f",
+                        "tertiary": "#386545",
+                        "surface-container-highest": "#e6e2dd",
+                        "secondary-fixed-dim": "#cdc5c0",
+                        "on-secondary-fixed": "#1f1b18",
+                        "on-tertiary-fixed-variant": "#225031",
+                        "primary-container": "#c1531b",
+                        "outline-variant": "#dec0b5",
+                        "outline": "#8b7268",
+                        "on-surface": "#1c1c19",
+                        "on-tertiary": "#ffffff",
+                        "tertiary-fixed": "#bcefc5",
+                        "surface-dim": "#ddd9d5",
+                        "error-container": "#ffdad6",
+                        "on-secondary-fixed-variant": "#4b4642",
+                        "on-secondary": "#ffffff",
+                        "surface-container-lowest": "#ffffff",
+                        "error": "#ba1a1a",
+                        "surface": "#fdf9f4",
+                        "primary": "#a03b00",
+                        "on-tertiary-fixed": "#00210d",
+                        "on-primary-fixed": "#360f00",
+                        "on-primary": "#ffffff",
+                        "surface-container-high": "#ebe8e3",
+                        "inverse-on-surface": "#f4f0eb",
+                        "surface-tint": "#a43d02",
+                        "on-error-container": "#93000a",
+                        "primary-fixed-dim": "#ffb597"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "auth-card-max": "440px",
+                        "grid-gutter": "1.5rem",
+                        "stack-gap-sm": "0.75rem",
+                        "stack-gap-lg": "2rem",
+                        "container-padding": "2rem",
+                        "stack-gap-md": "1.5rem"
+                    },
+                    "fontFamily": {
+                        "mono-code": ["JetBrains Mono"],
+                        "headline-md": ["Hanken Grotesk"],
+                        "display": ["Hanken Grotesk"],
+                        "headline-lg-mobile": ["Hanken Grotesk"],
+                        "label-md": ["Inter"],
+                        "headline-lg": ["Hanken Grotesk"],
+                        "body-lg": ["Inter"],
+                        "body-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "mono-code": ["15px", {"lineHeight": "24px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "display": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "headline-lg-mobile": ["28px", {"lineHeight": "36px", "fontWeight": "600"}],
+                        "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            background-color: #FAF6F1; /* Warm base tone from design system */
+            color: #1c1c19;
+            font-family: 'Inter', sans-serif;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #E5E1DC;
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #CDC5C0;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen">
+<!-- Top Navigation Anchor (Hidden on Desktop, Visible on Mobile if top-level) -->
+<header class="w-full top-0 sticky bg-surface-bright z-50 md:hidden flex justify-between items-center px-grid-gutter py-4">
+<div class="font-headline-lg text-headline-lg font-bold text-primary">Foxly</div>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-primary">notifications</span>
+<div class="w-8 h-8 rounded-full overflow-hidden border border-outline-variant">
+<img class="w-full h-full object-cover" data-alt="A close-up high-quality portrait of a professional user avatar with a soft-focus office background, using the Foxly brand colors of warm cream and deep charcoal. The lighting is bright and modern, emphasizing a secure and trustworthy persona for a security platform user profile." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC5KoYddugzpbFmdXtB3ipp37KUmBQBjw2YbIy8Je5fExglFfO3U24nPHHyL0w1F0jwAdsgonzlIx7dg3gMrjcAMQc_SYwAutvEU5Ncv882EwsVsk5hV4gvAlZOqGKf6Sirmke2zL76nXX8CBmlWEFDofHAiVyjT3JlHZDxdJsqcKAkao1gJwdbGh1gcsugX0juUYJh2MMFL08_UNOLmgsjs0S2twB_o16DUryzUVSBfNF-O7MMbOc2HhexFbARX0iV3iyN36uHV74Z"/>
+</div>
+</div>
+</header>
+<!-- SideNavBar (Authority Source: Shared Components JSON) -->
+<nav class="h-screen w-64 fixed left-0 top-0 bg-surface-container border-r border-outline-variant flex flex-col h-full p-4 gap-stack-gap-md hidden md:flex z-50">
+<div class="mb-4">
+<div class="font-headline-lg text-headline-lg font-black text-primary mb-1">Foxly</div>
+<div class="flex items-center gap-2 px-1">
+<span class="w-2 h-2 rounded-full bg-tertiary"></span>
+<span class="font-label-md text-label-md text-secondary">Guardian View</span>
+</div>
+</div>
+<button class="w-full bg-primary text-on-primary py-3 px-4 rounded-lg font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-all active:scale-95">
+<span class="material-symbols-outlined">add</span>
+            Add Device
+        </button>
+<div class="flex flex-col gap-1 mt-4">
+<a class="flex items-center gap-3 text-secondary px-4 py-3 hover:bg-surface-variant rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-label-md text-label-md">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 text-secondary px-4 py-3 hover:bg-surface-variant rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="security">security</span>
+<span class="font-label-md text-label-md">Security</span>
+</a>
+<a class="flex items-center gap-3 text-secondary px-4 py-3 hover:bg-surface-variant rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="verified_user">verified_user</span>
+<span class="font-label-md text-label-md">Approvals</span>
+</a>
+<a class="flex items-center gap-3 text-secondary px-4 py-3 hover:bg-surface-variant rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="devices">devices</span>
+<span class="font-label-md text-label-md">Devices</span>
+</a>
+<!-- ACTIVE TAB: Logs -->
+<a class="flex items-center gap-3 bg-primary-container text-on-primary-container rounded-lg px-4 py-3 active:scale-98 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="history">history</span>
+<span class="font-label-md text-label-md">Logs</span>
+</a>
+</div>
+<div class="mt-auto flex flex-col gap-1 pt-4 border-t border-outline-variant">
+<a class="flex items-center gap-3 text-secondary px-4 py-3 hover:bg-surface-variant rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</a>
+<a class="flex items-center gap-3 text-secondary px-4 py-3 hover:bg-surface-variant rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+<span class="font-label-md text-label-md">Logout</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="md:ml-64 p-grid-gutter min-h-screen">
+<div class="max-w-6xl mx-auto">
+<!-- Header & Filters Section -->
+<div class="mb-stack-gap-lg">
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+<div>
+<h1 class="font-headline-lg text-headline-lg text-on-background mb-1">Security Audit Logs</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">Review all activities and access events within your Guardian network.</p>
+</div>
+<div class="flex items-center gap-2">
+<button class="flex items-center gap-2 px-4 py-2 border border-outline rounded-lg font-label-md text-label-md hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined text-[18px]">download</span>
+                            Export CSV
+                        </button>
+</div>
+</div>
+<!-- Tab Filters -->
+<div class="flex items-center gap-2 mt-stack-gap-md border-b border-outline-variant overflow-x-auto whitespace-nowrap custom-scrollbar pb-1">
+<button class="px-6 py-3 font-label-md text-label-md border-b-2 border-primary text-primary transition-all">All Events</button>
+<button class="px-6 py-3 font-label-md text-label-md border-b-2 border-transparent text-secondary hover:text-primary transition-all">Sign-ins</button>
+<button class="px-6 py-3 font-label-md text-label-md border-b-2 border-transparent text-secondary hover:text-primary transition-all">Security Changes</button>
+<button class="px-6 py-3 font-label-md text-label-md border-b-2 border-transparent text-secondary hover:text-primary transition-all">Approvals</button>
+</div>
+</div>
+<!-- Audit Log Table -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant overflow-hidden flex flex-col h-[716px]">
+<!-- Table Header -->
+<div class="grid grid-cols-12 gap-4 px-6 py-4 bg-surface-container-low border-b border-outline-variant text-secondary font-label-md text-label-md uppercase tracking-wider">
+<div class="col-span-2">Timestamp</div>
+<div class="col-span-2">Event</div>
+<div class="col-span-3">Device/Location</div>
+<div class="col-span-5">Description</div>
+</div>
+<!-- Scrollable Content Area -->
+<div class="overflow-y-auto custom-scrollbar flex-grow">
+<!-- RISK FLAG ROW -->
+<div class="grid grid-cols-12 gap-4 px-6 py-5 border-b border-outline-variant bg-orange-50/50 hover:bg-orange-50 transition-colors group cursor-pointer">
+<div class="col-span-2 flex items-center">
+<span class="font-mono-code text-mono-code text-on-surface-variant">Today, 14:22:05</span>
+</div>
+<div class="col-span-2 flex items-center gap-2">
+<span class="material-symbols-outlined text-[#E8A33D]" style="font-variation-settings: 'FILL' 1;">warning</span>
+<span class="font-label-md text-label-md text-[#A03B00]">Sign-in Attempt</span>
+</div>
+<div class="col-span-3 flex items-center">
+<div class="flex flex-col">
+<span class="font-label-md text-label-md">Unknown Browser</span>
+<span class="text-xs text-secondary">Moscow, RU • 185.156.74.22</span>
+</div>
+</div>
+<div class="col-span-5 flex items-center justify-between">
+<span class="font-body-md text-body-md text-on-surface-variant">Multiple failed authentication attempts detected from a new location.</span>
+<div class="bg-[#E8A33D]/10 text-[#E8A33D] px-3 py-1 rounded-full text-xs font-bold uppercase tracking-tight flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">flag</span>
+                                Risk Flag
+                            </div>
+</div>
+</div>
+<!-- Row: Approval Given -->
+<div class="grid grid-cols-12 gap-4 px-6 py-5 border-b border-outline-variant hover:bg-surface-container-low transition-colors group">
+<div class="col-span-2 flex items-center">
+<span class="font-mono-code text-mono-code text-on-surface-variant">Today, 12:45:12</span>
+</div>
+<div class="col-span-2 flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary">verified</span>
+<span class="font-label-md text-label-md">Approval Given</span>
+</div>
+<div class="col-span-3 flex items-center">
+<div class="flex flex-col">
+<span class="font-label-md text-label-md">MacBook Pro M2</span>
+<span class="text-xs text-secondary">New York, US • 72.14.213.11</span>
+</div>
+</div>
+<div class="col-span-5 flex items-center">
+<span class="font-body-md text-body-md text-on-surface-variant">Manual override approved for 'Access Restricted Area' request.</span>
+</div>
+</div>
+<!-- Row: Device Added -->
+<div class="grid grid-cols-12 gap-4 px-6 py-5 border-b border-outline-variant hover:bg-surface-container-low transition-colors group">
+<div class="col-span-2 flex items-center">
+<span class="font-mono-code text-mono-code text-on-surface-variant">Today, 09:15:33</span>
+</div>
+<div class="col-span-2 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">add_circle</span>
+<span class="font-label-md text-label-md">Device Added</span>
+</div>
+<div class="col-span-3 flex items-center">
+<div class="flex flex-col">
+<span class="font-label-md text-label-md">iPad Air (6th Gen)</span>
+<span class="text-xs text-secondary">New York, US • 72.14.213.11</span>
+</div>
+</div>
+<div class="col-span-5 flex items-center">
+<span class="font-body-md text-body-md text-on-surface-variant">Successfully paired new Guardian node via secure QR handoff.</span>
+</div>
+</div>
+<!-- Dynamic Placeholder Rows to reach 20-30 -->
+<script>
+                        const events = [
+                            { type: "Sign-in", icon: "login", color: "text-secondary", desc: "User session established successfully." },
+                            { type: "Policy Update", icon: "rule", color: "text-secondary", desc: "Modified global timeout policy to 15 minutes." },
+                            { type: "Sign-out", icon: "logout", color: "text-secondary", desc: "User manually ended session." },
+                            { type: "Approval Requested", icon: "pending", color: "text-primary", desc: "System awaiting manager confirmation for sensitive data export." }
+                        ];
+                        const container = document.currentScript.parentElement;
+                        for (let i = 0; i < 25; i++) {
+                            const event = events[Math.floor(Math.random() * events.length)];
+                            const row = document.createElement('div');
+                            row.className = "grid grid-cols-12 gap-4 px-6 py-5 border-b border-outline-variant hover:bg-surface-container-low transition-colors";
+                            row.innerHTML = `
+                                <div class="col-span-2 flex items-center">
+                                    <span class="font-mono-code text-mono-code text-on-surface-variant">Oct ${10 + Math.floor(i/5)}, ${10 + (i%12)}:32:${15 + i}</span>
+                                </div>
+                                <div class="col-span-2 flex items-center gap-2">
+                                    <span class="material-symbols-outlined ${event.color}">${event.icon}</span>
+                                    <span class="font-label-md text-label-md">${event.type}</span>
+                                </div>
+                                <div class="col-span-3 flex items-center">
+                                    <div class="flex flex-col">
+                                        <span class="font-label-md text-label-md">Primary Workstation</span>
+                                        <span class="text-xs text-secondary">Local Network • 192.168.1.${100 + i}</span>
+                                    </div>
+                                </div>
+                                <div class="col-span-5 flex items-center">
+                                    <span class="font-body-md text-body-md text-on-surface-variant">${event.desc}</span>
+                                </div>
+                            `;
+                            container.appendChild(row);
+                        }
+                    </script>
+</div>
+<!-- Table Footer -->
+<div class="px-6 py-4 bg-surface-container-low border-t border-outline-variant flex items-center justify-between">
+<span class="font-label-md text-label-md text-secondary">Showing 28 of 1,422 events</span>
+<div class="flex items-center gap-4">
+<button class="p-2 rounded-lg hover:bg-surface-variant text-secondary disabled:opacity-30" disabled="">
+<span class="material-symbols-outlined">chevron_left</span>
+</button>
+<span class="font-label-md text-label-md">Page 1 of 51</span>
+<button class="p-2 rounded-lg hover:bg-surface-variant text-secondary">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Background Atmospheric Effect -->
+<div class="fixed bottom-0 right-0 p-12 opacity-5 pointer-events-none select-none">
+<span class="material-symbols-outlined text-[200px] text-primary" style="font-variation-settings: 'wght' 200;">policy</span>
+</div>
+</body></html>

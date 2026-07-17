@@ -1,0 +1,12 @@
+{
+  "name": "ctrl-she",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev:foxly:frontend": "npm run dev -w apps/foxly-frontend",
+    "dev:foxly:backend": "npm run dev -w apps/foxly-backend",
+    "build": "npm run build -ws --if-present",
+    "typecheck": "npm run typecheck -ws --if-present"
+  }
+}
