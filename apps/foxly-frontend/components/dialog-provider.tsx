@@ -54,26 +54,26 @@ type VariantConfig = {
 
 const VARIANTS: Record<DialogVariant, VariantConfig> = {
   error: {
-    icon: "error",
-    badge: "bg-red-100 text-red-700",
+    icon: "❌",
+    badge: "bg-red-50 text-red-700 text-sm",
     strip: "bg-red-500",
     defaultTitle: "Error",
   },
   warning: {
-    icon: "warning",
-    badge: "bg-amber-100 text-amber-700",
+    icon: "⚠️",
+    badge: "bg-amber-50 text-amber-700 text-sm",
     strip: "bg-amber-500",
     defaultTitle: "Warning",
   },
   info: {
-    icon: "info",
-    badge: "bg-orange-100 text-[#a03b00]",
+    icon: "ℹ️",
+    badge: "bg-orange-50 text-[#a03b00] text-sm",
     strip: "bg-[#a03b00]",
     defaultTitle: "Info",
   },
   confirm: {
-    icon: "help",
-    badge: "bg-orange-100 text-[#a03b00]",
+    icon: "❓",
+    badge: "bg-orange-50 text-[#a03b00] text-sm",
     strip: "bg-[#a03b00]",
     defaultTitle: "Confirm",
   },
@@ -163,9 +163,9 @@ export function DialogProvider({ children }: { children: ReactNode }) {
               <div className="flex items-start gap-4 p-6 sm:pl-8">
                 {/* Icon badge */}
                 <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${cfg.badge}`}
+                  className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border border-gray-100 shadow-sm ${cfg.badge}`}
                 >
-                  <span className="material-symbols-outlined text-xl select-none">{cfg.icon}</span>
+                  <span className="select-none text-base leading-none">{cfg.icon}</span>
                 </div>
 
                 {/* Text */}

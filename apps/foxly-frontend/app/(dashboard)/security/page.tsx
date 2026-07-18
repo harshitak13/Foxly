@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { startRegistration } from "@simplewebauthn/browser";
 import { api, stableClientId } from "@/lib/api";
@@ -15,6 +15,8 @@ function BackupCodesModal({
   codes: string[];
   onClose: () => void;
 }) {
+  const [isSaved, setIsSaved] = useState(false);
+
   function downloadCSV() {
     const csv = ["Backup Code", ...codes].join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -26,6 +28,29 @@ function BackupCodesModal({
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  }
+
+  async function saveToPasswordManager() {
+    try {
+      let email = "foxly-account";
+      try {
+        const u = await api<{ email: string }>("/auth/me");
+        if (u?.email) email = u.email;
+      } catch {}
+      if (!("credentials" in navigator) || !window.PasswordCredential) {
+        downloadCSV();
+        return;
+      }
+      const cred = new window.PasswordCredential({
+        id: email,
+        name: "Foxly backup codes",
+        password: codes.join(" "),
+      });
+      await navigator.credentials.store(cred);
+      setIsSaved(true);
+    } catch {
+      downloadCSV();
+    }
   }
 
   return (
@@ -68,16 +93,27 @@ function BackupCodesModal({
         </div>
 
         {/* Actions */}
-        <div className="flex gap-3">
-          <button
-            onClick={downloadCSV}
-            className="flex flex-1 items-center justify-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90 transition-opacity"
-          >
-            ⬇ Save as CSV
-          </button>
+        <div className="flex flex-col gap-3">
+          <div className="flex gap-3">
+            <button
+              onClick={saveToPasswordManager}
+              disabled={isSaved}
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-full px-4 py-2.5 text-xs font-semibold transition-all ${
+                isSaved ? "bg-green-600 text-white cursor-default" : "bg-primary text-white hover:opacity-90 transition-opacity"
+              }`}
+            >
+              {isSaved ? "✓ Saved" : "💾 Password Manager"}
+            </button>
+            <button
+              onClick={downloadCSV}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-full border border-outline-variant px-4 py-2.5 text-xs font-semibold text-primary hover:bg-surface-container transition-colors"
+            >
+              ⬇ Save as CSV
+            </button>
+          </div>
           <button
             onClick={onClose}
-            className="rounded-full border border-outline-variant px-5 py-2.5 text-sm font-semibold text-on-surface hover:bg-surface-container transition-colors"
+            className="w-full rounded-full border border-outline-variant px-5 py-2.5 text-sm font-semibold text-on-surface hover:bg-surface-container transition-colors"
           >
             Done
           </button>
@@ -91,16 +127,9 @@ function BackupCodesModal({
 
 export default function Security() {
   const router = useRouter();
-  const [devices, setDevices] = useState<any[]>([]);
   const [backupCodes, setBackupCodes] = useState<string[] | null>(null);
   const dialog = useDialog();
-  // useDevices gives us the shared module-level cache; refresh() propagates
-  // the new credential to every page that uses it (e.g. /devices).
-  const { refresh: refreshSharedDeviceCache } = useDevices();
-
-  useEffect(() => {
-    api<any>("/devices").then((d) => setDevices(Array.isArray(d.devices) ? d.devices : [])).catch(() => {});
-  }, []);
+  const { devices, loading: devicesLoading, refresh: refreshDevices } = useDevices();
 
   async function addPasskey() {
     try {
@@ -112,11 +141,8 @@ export default function Security() {
         method: "POST",
         body: JSON.stringify({ attestation, stableClientId: stableClientId(), deviceLabel: "Additional passkey" }),
       });
-      // Refresh both local state AND the shared cache (used by /devices page)
-      const d = await api<any>("/devices");
-      const fresh = Array.isArray(d.devices) ? d.devices : [];
-      setDevices(fresh);
-      await refreshSharedDeviceCache();
+      // Refresh the shared cache — both this page and /devices update automatically
+      await refreshDevices();
       await dialog.alert({
         title: "Passkey added",
         message: "Your new passkey was registered successfully. It will now appear in your Devices list and can be used to sign in.",
@@ -144,7 +170,7 @@ export default function Security() {
 
   async function revokeDevice(id: string) {
     await api(`/devices/${id}`, { method: "DELETE" });
-    setDevices((prev) => prev.filter((d) => d.id !== id));
+    await refreshDevices();
   }
 
   async function regenerateCodes() {
@@ -154,6 +180,23 @@ export default function Security() {
           method: "POST",
         });
         setBackupCodes(data.codes);
+
+        // Auto-save to Password Manager
+        try {
+          let email = "foxly-account";
+          try {
+            const u = await api<{ email: string }>("/auth/me");
+            if (u?.email) email = u.email;
+          } catch {}
+          if ("credentials" in navigator && window.PasswordCredential) {
+            const cred = new window.PasswordCredential({
+              id: email,
+              name: "Foxly backup codes",
+              password: data.codes.join(" "),
+            });
+            await navigator.credentials.store(cred);
+          }
+        } catch {}
       } catch (err) {
         dialog.alert({ message: "Failed to regenerate codes: " + (err as Error).message, variant: "error" });
       }
@@ -217,7 +260,13 @@ export default function Security() {
             </button>
           </div>
           <div className="border-t border-outline-variant">
-            {devices.length === 0 ? (
+            {devicesLoading ? (
+              <div className="px-6 py-4 space-y-3">
+                {[1,2].map(i => (
+                  <div key={i} className="h-6 w-2/3 rounded bg-surface-container animate-pulse" />
+                ))}
+              </div>
+            ) : devices.length === 0 ? (
               <p className="px-6 py-4 text-sm text-on-surface-variant">No passkeys registered yet.</p>
             ) : (
               devices.map((d, i) => (
@@ -231,19 +280,18 @@ export default function Security() {
                           Active on this device
                         </span>
                       )}
+                      <p className="text-xs text-on-surface-variant mt-0.5">
+                        Added {new Date(d.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                        {d.lastUsedAt && <> · Last used {new Date(d.lastUsedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</>}
+                      </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <span className="text-sm text-on-surface-variant">
-                      Added {new Date(d.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                    </span>
-                    <button
-                      onClick={() => revokeDevice(d.id)}
-                      className="text-sm font-semibold text-red-600 hover:underline"
-                    >
-                      Revoke
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => revokeDevice(d.id)}
+                    className="text-sm font-semibold text-red-600 hover:underline"
+                  >
+                    Revoke
+                  </button>
                 </div>
               ))
             )}

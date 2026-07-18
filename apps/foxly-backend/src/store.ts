@@ -34,7 +34,23 @@ const dbUrl = process.env.DATABASE_URL;
 const redisUrl = process.env.REDIS_URL;
 
 const pool = dbUrl ? new pg.Pool({ connectionString: dbUrl }) : null;
-const redis = redisUrl ? new Redis(redisUrl) : null;
+const redis = redisUrl
+  ? new Redis(redisUrl, {
+      lazyConnect: true,
+      enableOfflineQueue: false,
+      maxRetriesPerRequest: 0,
+      retryStrategy: () => null,        // stop retrying immediately on failure
+    })
+  : null;
+
+// Suppress unhandled-error events when Redis is unavailable (dev without Redis)
+if (redis) {
+  redis.on("error", (err: Error) => {
+    if ((err as NodeJS.ErrnoException).code === "ECONNREFUSED") return; // expected in dev
+    console.error("[redis] unexpected error:", err.message);
+  });
+  redis.connect().catch(() => {/* Redis unavailable – running in degraded mode */});
+}
 
 // Initialize tables and load data into memory Maps (Write-Through cache)
 async function initDb() {
@@ -288,8 +304,12 @@ export const store = {
     this.addNotification(user.id, "Welcome to Foxly! Your account is active and protected.");
     return user;
   },
-  findUserByEmail(email: string) { return [...users.values()].find((u) => u.email === email.toLowerCase()); },
-  findUserById(id: string) { return users.get(id); },
+  findUserByEmail(email: string) {
+    return [...users.values()].find((u) => u.email === email.toLowerCase());
+  },
+  findUserById(id: string) {
+    return users.get(id);
+  },
   publicUser(userId: string) {
     const user = users.get(userId);
     return user ? { id: user.id, email: user.email, name: user.name } : null;
@@ -392,8 +412,12 @@ export const store = {
     this.addNotification(credential.userId, `New device paired: ${credential.deviceLabel}`);
     return credential;
   },
-  credentialsForUser(userId: string) { return [...credentials.values()].filter((c) => c.userId === userId && !c.revokedAt); },
-  findCredentialByExternalId(credentialId: string) { return [...credentials.values()].find((c) => c.credentialId === credentialId && !c.revokedAt); },
+  credentialsForUser(userId: string) {
+    return [...credentials.values()].filter((c) => c.userId === userId && !c.revokedAt);
+  },
+  findCredentialByExternalId(credentialId: string) {
+    return [...credentials.values()].find((c) => c.credentialId === credentialId && !c.revokedAt);
+  },
   updateCredentialCounter(id: string, counter: number) {
     const c = credentials.get(id);
     if (c) {
@@ -653,7 +677,9 @@ export const store = {
     this.addNotification(userId, `Pending approval request created: ${title}`);
     return approval;
   },
-  listApprovals(userId: string, status?: string) { return [...approvals.values()].filter((a) => a.userId === userId && (!status || a.status === status)); },
+  listApprovals(userId: string, status?: string) {
+    return [...approvals.values()].filter((a) => a.userId === userId && (!status || a.status === status));
+  },
   approve(userId: string, id: string) {
     const approval = approvals.get(id);
     if (!approval || approval.userId !== userId) return null;
@@ -724,5 +750,18 @@ export const store = {
     addAuditRow(row);
   },
 };
-function cryptoCode() { const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; const bytes = new Uint8Array(10); webcrypto.getRandomValues(bytes); return Array.from(bytes, (n) => alphabet[n % alphabet.length]).join("").replace(/(.{5})/, "$1-"); }
-function numericCode() { const bytes = new Uint8Array(6); webcrypto.getRandomValues(bytes); return Array.from(bytes, (n) => String(n % 10)).join(""); }
+
+function cryptoCode() {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const bytes = new Uint8Array(10);
+  webcrypto.getRandomValues(bytes);
+  return Array.from(bytes, (n) => alphabet[n % alphabet.length])
+    .join("")
+    .replace(/(.{5})/, "$1-");
+}
+
+function numericCode() {
+  const bytes = new Uint8Array(6);
+  webcrypto.getRandomValues(bytes);
+  return Array.from(bytes, (n) => String(n % 10)).join("");
+}

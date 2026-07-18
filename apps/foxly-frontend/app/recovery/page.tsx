@@ -4,6 +4,12 @@ import { useRouter } from "next/navigation";
 import { AuthShell, Button, TextInput } from "@/components/ui";
 import { api } from "@/lib/api";
 
+declare global {
+  interface Window {
+    PasswordCredential?: new (data: { id: string; name?: string; password: string }) => Credential;
+  }
+}
+
 export default function Recovery() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -31,6 +37,19 @@ export default function Recovery() {
       });
       setNewCodes(result.codes);
       setStep("new-codes");
+
+      // Auto-save to Password Manager
+      try {
+        if ("credentials" in navigator && window.PasswordCredential) {
+          const cred = new window.PasswordCredential({
+            id: email || "foxly-account",
+            name: "Foxly backup codes",
+            password: result.codes.join(" "),
+          });
+          await navigator.credentials.store(cred);
+          setSavedConfirmed(true);
+        }
+      } catch {}
     } catch (err) {
       const msg = (err as Error).message;
       setErrorMsg(
@@ -43,6 +62,38 @@ export default function Recovery() {
       setStep("error");
     } finally {
       setBusy(false);
+    }
+  }
+
+  // ── New codes helpers ──────────────────────────────────────────────────────────
+  const generatedAt = new Date().toISOString();
+
+  function downloadCsv() {
+    const rows = ["code,used,generated_at", ...newCodes.map((c) => `${c},false,${generatedAt}`)].join("\n");
+    const blob = new Blob([rows], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "foxly-backup-codes.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function saveToPasswordManager() {
+    try {
+      if (!("credentials" in navigator) || !window.PasswordCredential) {
+        downloadCsv();
+        return;
+      }
+      const cred = new window.PasswordCredential({
+        id: email || "foxly-account",
+        name: "Foxly backup codes",
+        password: newCodes.join(" "),
+      });
+      await navigator.credentials.store(cred);
+      setSavedConfirmed(true);
+    } catch {
+      downloadCsv();
     }
   }
 
@@ -66,6 +117,23 @@ export default function Recovery() {
 
         <div className="mt-4 rounded-md bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800">
           ⚠️ Once you leave this page these codes <strong>cannot be shown again</strong>.
+        </div>
+
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <button
+            id="save-password-manager"
+            onClick={saveToPasswordManager}
+            className="h-11 rounded bg-primary text-sm font-semibold text-white hover:opacity-90 transition-opacity"
+          >
+            💾 Save to Password Manager
+          </button>
+          <button
+            id="download-csv"
+            onClick={downloadCsv}
+            className="h-11 rounded border border-outline-variant bg-white text-sm font-semibold text-primary hover:bg-surface-container transition-colors"
+          >
+            ⬇ Download CSV
+          </button>
         </div>
 
         <label className="mt-5 flex items-center gap-3 text-sm cursor-pointer">

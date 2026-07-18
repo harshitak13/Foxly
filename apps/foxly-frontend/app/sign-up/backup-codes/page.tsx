@@ -25,6 +25,19 @@ export default function BackupCodes() {
         body: JSON.stringify({ email }),
       });
       setCodes(data.codes);
+
+      // Auto-save to Password Manager
+      try {
+        if ("credentials" in navigator && window.PasswordCredential) {
+          const cred = new window.PasswordCredential({
+            id: email || "foxly-account",
+            name: "Foxly backup codes",
+            password: data.codes.join(" "),
+          });
+          await navigator.credentials.store(cred);
+          setSaved(true);
+        }
+      } catch {}
     } catch (err) {
       setError((err as Error).message);
     }

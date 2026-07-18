@@ -34,7 +34,7 @@ export default function SignIn() {
       const assertion = await startAuthentication(options);
       const result = await api<any>("/auth/signin/verify", { method: "POST", body: JSON.stringify({ email, assertion, stableClientId: stableClientId() }) });
       if (result.stepUp) {
-        sessionStorage.setItem("foxly_step_up", JSON.stringify(result));
+        sessionStorage.setItem("foxly_step_up", JSON.stringify({ ...result, email }));
         router.push("/verification-step-up");
       } else {
         router.push("/dashboard");

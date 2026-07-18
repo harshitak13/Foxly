@@ -5,7 +5,9 @@ export function apiBase() {
 }
 
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${apiBase()}${path}`, {
+  const isRelative = path.startsWith("/");
+  const requestUrl = isRelative ? `/api-proxy${path}` : path;
+  const res = await fetch(`${apiBase()}${requestUrl}`, {
     ...init,
     credentials: "include",
     headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
