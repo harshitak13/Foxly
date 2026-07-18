@@ -15,7 +15,7 @@ export default function Notifications() {
 
   const fetchNotifications = () => {
     api<{ notifications: Notification[] }>("/notifications")
-      .then((d) => setNotifications(d.notifications))
+      .then((d) => setNotifications(Array.isArray(d.notifications) ? d.notifications : []))
       .catch(() => {})
       .finally(() => setLoading(false));
   };

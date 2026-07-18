@@ -15,7 +15,7 @@ export default function Approvals() {
 
   useEffect(() => {
     api<any>("/approvals?status=pending")
-      .then((d) => setPending(d.approvals))
+      .then((d) => setPending(Array.isArray(d.approvals) ? d.approvals : []))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);

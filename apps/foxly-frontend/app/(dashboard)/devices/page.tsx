@@ -12,7 +12,7 @@ export default function Devices() {
   const fetchDevices = () => {
     setLoading(true);
     api<any>("/devices")
-      .then((d) => setDevices(d.devices))
+      .then((d) => setDevices(Array.isArray(d.devices) ? d.devices : []))
       .catch(() => {})
       .finally(() => setLoading(false));
   };

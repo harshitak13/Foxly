@@ -25,7 +25,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       .catch(() => {});
     api<{ notifications: any[] }>("/notifications")
       .then((data) => {
-        setUnreadCount(data.notifications.filter((n: any) => !n.read).length);
+        const notifications = Array.isArray(data.notifications) ? data.notifications : [];
+        setUnreadCount(notifications.filter((n: any) => !n.read).length);
       })
       .catch(() => {});
   };

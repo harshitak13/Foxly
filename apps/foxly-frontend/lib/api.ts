@@ -1,7 +1,7 @@
 export function apiBase() {
   if (process.env.NEXT_PUBLIC_API_BASE) return process.env.NEXT_PUBLIC_API_BASE;
   if (typeof window === "undefined") return "http://localhost:4000";
-  return `${window.location.protocol}//${window.location.hostname}:4000`;
+  return "";
 }
 
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {

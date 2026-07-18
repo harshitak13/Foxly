@@ -3,8 +3,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 
-const API = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:4000";
-
 const RECENT_ACTIVITY = [
   { icon: "💻", title: "Sign-in from MacBook Pro", sub: "Chrome · San Francisco, US", time: "Just now", timeColor: "text-primary" },
   { icon: "📱", title: "New Device Added: iPhone 15 Pro", sub: "Official App · London, UK", time: "2 hours ago", timeColor: "text-on-surface-variant" },
@@ -17,8 +15,8 @@ export default function Dashboard() {
   const [approvals, setApprovals] = useState<any[]>([]);
 
   useEffect(() => {
-    api<any>("/devices").then((d) => setDevices(d.devices)).catch(() => {});
-    api<any>("/approvals?status=pending").then((d) => setApprovals(d.approvals)).catch(() => {});
+    api<any>("/devices").then((d) => setDevices(Array.isArray(d.devices) ? d.devices : [])).catch(() => {});
+    api<any>("/approvals?status=pending").then((d) => setApprovals(Array.isArray(d.approvals) ? d.approvals : [])).catch(() => {});
   }, []);
 
   return (

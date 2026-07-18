@@ -9,7 +9,7 @@ export default function Security() {
   const [devices, setDevices] = useState<any[]>([]);
 
   useEffect(() => {
-    api<any>("/devices").then((d) => setDevices(d.devices)).catch(() => {});
+    api<any>("/devices").then((d) => setDevices(Array.isArray(d.devices) ? d.devices : [])).catch(() => {});
   }, []);
 
   async function addPasskey() {
@@ -23,7 +23,7 @@ export default function Security() {
         body: JSON.stringify({ attestation, stableClientId: stableClientId(), deviceLabel: "Additional passkey" }),
       });
       const d = await api<any>("/devices");
-      setDevices(d.devices);
+      setDevices(Array.isArray(d.devices) ? d.devices : []);
     } catch (err) {
       alert((err as Error).message);
     }
