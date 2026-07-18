@@ -1,11 +1,13 @@
 "use client";
 import { useEffect, useState } from "react";
+import { startAuthentication } from "@simplewebauthn/browser";
 import { AuthShell, Button, TextInput } from "@/components/ui";
 import { api } from "@/lib/api";
 
 export default function Profile() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [currentEmail, setCurrentEmail] = useState("");
   const [role, setRole] = useState("");
   const [createdAt, setCreatedAt] = useState("");
   const [loading, setLoading] = useState(true);
@@ -17,6 +19,7 @@ export default function Profile() {
       .then((user) => {
         setName(user.name);
         setEmail(user.email);
+        setCurrentEmail(user.email);
         setRole(user.role);
         setCreatedAt(new Date(user.createdAt).toLocaleDateString("en-US", {
           month: "long",
@@ -36,11 +39,18 @@ export default function Profile() {
     setMessage(null);
     setSaving(true);
     try {
+      let passkeyAssertion;
+      if (email !== currentEmail) {
+        const options = await api<any>("/auth/profile/options", { method: "POST" });
+        passkeyAssertion = await startAuthentication(options);
+      }
+
       await api("/auth/profile", {
         method: "POST",
-        body: JSON.stringify({ name, email }),
+        body: JSON.stringify({ name, email, passkeyAssertion }),
       });
       setMessage({ type: "success", text: "Profile details updated successfully!" });
+      setCurrentEmail(email);
       // Update local storage email since it is used in passkey setups
       sessionStorage.setItem("foxly_email", email);
     } catch (err) {

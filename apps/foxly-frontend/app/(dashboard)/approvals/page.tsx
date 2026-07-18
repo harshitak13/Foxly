@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { useDialog } from "@/components/dialog-provider";
 import type { Approval } from "shared-types";
 
 const RECENT_VERIFICATIONS = [
@@ -12,6 +13,7 @@ export default function Approvals() {
   const [tab, setTab] = useState<"pending" | "history">("pending");
   const [pending, setPending] = useState<Approval[]>([]);
   const [loading, setLoading] = useState(true);
+  const dialog = useDialog();
 
   useEffect(() => {
     api<any>("/approvals?status=pending")
@@ -28,7 +30,7 @@ export default function Approvals() {
       });
       setPending((prev) => prev.filter((a) => a.id !== id));
     } catch (err) {
-      alert((err as Error).message);
+      dialog.alert({ message: (err as Error).message, isDanger: true });
     }
   }
 
@@ -39,7 +41,7 @@ export default function Approvals() {
       });
       setPending((prev) => prev.filter((a) => a.id !== id));
     } catch (err) {
-      alert((err as Error).message);
+      dialog.alert({ message: (err as Error).message, isDanger: true });
     }
   }
 

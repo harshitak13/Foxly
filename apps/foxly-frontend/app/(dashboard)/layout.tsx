@@ -3,7 +3,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
-
+import { useDialog } from "@/components/dialog-provider";
 const NAV = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/security", label: "Security" },
@@ -18,6 +18,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [user, setUser] = useState<{ name: string; email: string; role: string } | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
+  const dialog = useDialog();
 
   const fetchStatus = () => {
     api<{ name: string; email: string; role: string }>("/auth/me")
@@ -38,13 +39,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return () => clearInterval(interval);
   }, []);
 
-  const handleLogout = async () => {
-    if (confirm("Are you sure you want to log out?")) {
+  async function handleLogout() {
+    setProfileDropdownOpen(false);
+    if (await dialog.confirm({ message: "Are you sure you want to log out?" })) {
       try {
         await api("/auth/logout", { method: "POST" });
         router.push("/sign-in");
       } catch (err) {
-        alert("Logout failed: " + (err as Error).message);
+        dialog.alert({ message: "Logout failed: " + (err as Error).message, isDanger: true });
       }
     }
   };

@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { useDialog } from "@/components/dialog-provider";
 
 interface Notification {
   id: string;
@@ -12,6 +13,7 @@ interface Notification {
 export default function Notifications() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+  const dialog = useDialog();
 
   const fetchNotifications = () => {
     api<{ notifications: Notification[] }>("/notifications")
@@ -29,7 +31,7 @@ export default function Notifications() {
       await api("/notifications/read-all", { method: "POST" });
       fetchNotifications();
     } catch (err) {
-      alert("Failed to mark read: " + (err as Error).message);
+      dialog.alert({ message: "Failed to mark read: " + (err as Error).message, isDanger: true });
     }
   };
 
@@ -38,7 +40,7 @@ export default function Notifications() {
       await api(`/notifications/${id}`, { method: "DELETE" });
       setNotifications((prev) => prev.filter((n) => n.id !== id));
     } catch (err) {
-      alert("Failed to delete notification: " + (err as Error).message);
+      dialog.alert({ message: "Failed to delete notification: " + (err as Error).message, isDanger: true });
     }
   };
 

@@ -1,119 +1,124 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { AuthShell, Button, TextInput } from "@/components/ui";
-import { api, stableClientId } from "@/lib/api";
 import { startRegistration } from "@simplewebauthn/browser";
+import { api, stableClientId } from "@/lib/api";
+import { useDevices } from "@/lib/use-devices";
+import { DeviceLinkInvite } from "@/components/device-link-invite";
 
 export default function AddDevice() {
   const router = useRouter();
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [platform, setPlatform] = useState("Laptop");
-  const [error, setError] = useState("");
+  const { refresh } = useDevices();
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [done, setDone] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
+  /** Register a passkey on the device the user is currently on */
+  async function registerHere() {
     setBusy(true);
-
+    setError("");
     try {
-      // Step 1: fetch options for logged-in user
       const options = await api<any>("/auth/device/options", { method: "POST" });
-      
-      // Step 2: request WebAuthn browser attestation
       const attestation = await startRegistration(options);
-      
-      // Step 3: verify with backend and save
-      const deviceLabel = `${platform} (${name})`;
       await api("/auth/device/verify", {
         method: "POST",
         body: JSON.stringify({
           attestation,
           stableClientId: stableClientId(),
-          deviceLabel: deviceLabel
-        })
+          deviceLabel: "Additional passkey",
+        }),
       });
-
-      // Redirect back to devices on success
-      router.push("/devices");
+      setDone(true);
+      refresh(); // update device list on /devices immediately
     } catch (err) {
+      const msg = (err as Error).message;
       setError(
-        (err as Error).message.includes("timed out") || (err as Error).message.includes("not allowed")
-          ? "Passkey registration prompt dismissed or timed out. Please try again."
-          : (err as Error).message
+        msg.includes("timed out") || msg.includes("not allowed")
+          ? "Passkey prompt dismissed or timed out — please try again."
+          : msg
       );
     } finally {
       setBusy(false);
     }
-  };
+  }
 
   return (
     <div className="max-w-xl mx-auto">
-      <div className="mb-6">
-        <h1 className="font-display text-2xl font-bold text-on-surface">Add Trusted Device</h1>
-        <p className="text-sm text-on-surface-variant mt-1">
-          Register a new hardware device, security key, or client browser by enrolling a passkey.
-        </p>
+      {/* Header */}
+      <div className="mb-6 flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => router.push("/devices")}
+          className="text-on-surface-variant hover:text-on-surface transition-colors"
+          aria-label="Back"
+        >
+          ←
+        </button>
+        <div>
+          <h1 className="font-display text-2xl font-bold text-on-surface">Add a Device</h1>
+          <p className="text-sm text-on-surface-variant mt-0.5">
+            Scan the QR on another device, or register a passkey right here.
+          </p>
+        </div>
       </div>
 
+      {/* ── QR / cross-device flow (same as sign-up success page) ── */}
+      <DeviceLinkInvite />
+
+      {/* ── Divider ── */}
+      <div className="my-6 flex items-center gap-3">
+        <div className="flex-1 border-t border-outline-variant" />
+        <span className="text-xs font-semibold uppercase tracking-widest text-on-surface-variant">
+          or register on this device
+        </span>
+        <div className="flex-1 border-t border-outline-variant" />
+      </div>
+
+      {/* ── This-device passkey flow ── */}
       <div className="rounded-xl border border-outline-variant bg-white p-6 shadow-sm">
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="text-sm font-semibold text-on-surface">Device name</label>
-            <TextInput
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. My Personal MacBook Pro, Work Phone"
-            />
+        <div className="flex items-center gap-4 mb-4">
+          <div className="grid h-12 w-12 place-items-center rounded-xl bg-orange-100 text-2xl shrink-0">
+            🔑
           </div>
-
           <div>
-            <label className="text-sm font-semibold text-on-surface">Platform / Type</label>
-            <select
-              value={platform}
-              onChange={(e) => setPlatform(e.target.value)}
-              className="mt-2 h-12 w-full rounded border border-outline-variant bg-surface-container-low px-4 text-on-surface outline-none focus:border-primary"
-            >
-              <option value="Laptop">💻 Laptop</option>
-              <option value="Mobile">📱 Mobile / Phone</option>
-              <option value="Desktop">🖥️ Desktop</option>
-              <option value="Security Key">🔑 Security Key (YubiKey)</option>
-            </select>
+            <p className="font-bold text-on-surface">Register on this device</p>
+            <p className="text-sm text-on-surface-variant">
+              Use your device's biometrics or security key to add a passkey right now.
+            </p>
           </div>
+        </div>
 
-          <div>
-            <label className="text-sm font-semibold text-on-surface">Description (optional)</label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="e.g. Registered in the office, used for recovery fallback."
-              rows={3}
-              className="mt-2 w-full rounded border border-outline-variant bg-surface-container-low px-4 py-3 text-on-surface outline-none focus:border-primary text-sm"
-            />
+        {done ? (
+          <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">
+            ✅ Passkey registered on this device.
           </div>
-
-          {error && (
-            <div className="rounded-md bg-red-50 border border-red-200 p-3 text-sm text-error">
-              {error}
-            </div>
-          )}
-
-          <div className="flex justify-end gap-3 pt-4">
+        ) : (
+          <>
+            {error && (
+              <div className="mb-3 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-error">
+                {error}
+              </div>
+            )}
             <button
-              type="button"
-              onClick={() => router.push("/devices")}
-              className="rounded-lg border border-outline-variant px-5 py-2.5 text-sm font-semibold text-on-surface hover:bg-surface-container transition-colors"
+              onClick={registerHere}
+              disabled={busy}
+              className="w-full rounded-full bg-primary py-2.5 text-sm font-semibold text-white hover:opacity-90 transition-opacity disabled:opacity-50"
             >
-              Cancel
+              {busy ? "Waiting for passkey…" : "Create passkey on this device"}
             </button>
-            <Button type="submit" disabled={busy} className="mt-0 w-auto px-6">
-              {busy ? "Registering passkey..." : "Enlist Device"}
-            </Button>
-          </div>
-        </form>
+          </>
+        )}
+      </div>
+
+      {/* Back link */}
+      <div className="mt-6 text-center">
+        <button
+          type="button"
+          onClick={() => router.push("/devices")}
+          className="text-sm text-on-surface-variant hover:text-on-surface underline underline-offset-2"
+        >
+          Back to devices
+        </button>
       </div>
     </div>
   );

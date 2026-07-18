@@ -3,10 +3,96 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { startRegistration } from "@simplewebauthn/browser";
 import { api, stableClientId } from "@/lib/api";
+import { useDialog } from "@/components/dialog-provider";
+
+// ─── Backup Codes Modal ───────────────────────────────────────────────────────
+
+function BackupCodesModal({
+  codes,
+  onClose,
+}: {
+  codes: string[];
+  onClose: () => void;
+}) {
+  function downloadCSV() {
+    const csv = ["Backup Code", ...codes].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "foxly-backup-codes.csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="relative w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
+        {/* Header */}
+        <button
+          onClick={onClose}
+          className="absolute right-4 top-4 text-on-surface-variant hover:text-on-surface text-xl leading-none"
+          aria-label="Close"
+        >
+          ✕
+        </button>
+        <div className="mb-6 flex items-center gap-3">
+          <div className="grid h-12 w-12 place-items-center rounded-xl bg-surface-container text-2xl">🛡</div>
+          <div>
+            <h2 className="font-bold text-on-surface text-lg">New Backup Codes</h2>
+            <p className="text-sm text-on-surface-variant">Store these somewhere safe.</p>
+          </div>
+        </div>
+
+        {/* Warning */}
+        <div className="mb-5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          ⚠️ These codes replace your previous ones. Old codes are now invalid.
+        </div>
+
+        {/* Codes grid */}
+        <div className="mb-6 grid grid-cols-2 gap-2">
+          {codes.map((code, i) => (
+            <div
+              key={i}
+              className="rounded-lg border border-outline-variant bg-surface-container px-3 py-2 font-mono text-sm font-semibold tracking-widest text-on-surface text-center select-all"
+            >
+              {code}
+            </div>
+          ))}
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-3">
+          <button
+            onClick={downloadCSV}
+            className="flex flex-1 items-center justify-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90 transition-opacity"
+          >
+            ⬇ Save as CSV
+          </button>
+          <button
+            onClick={onClose}
+            className="rounded-full border border-outline-variant px-5 py-2.5 text-sm font-semibold text-on-surface hover:bg-surface-container transition-colors"
+          >
+            Done
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function Security() {
   const router = useRouter();
   const [devices, setDevices] = useState<any[]>([]);
+  const [backupCodes, setBackupCodes] = useState<string[] | null>(null);
+  const dialog = useDialog();
 
   useEffect(() => {
     api<any>("/devices").then((d) => setDevices(Array.isArray(d.devices) ? d.devices : [])).catch(() => {});
@@ -25,7 +111,7 @@ export default function Security() {
       const d = await api<any>("/devices");
       setDevices(Array.isArray(d.devices) ? d.devices : []);
     } catch (err) {
-      alert((err as Error).message);
+      dialog.alert({ message: (err as Error).message, isDanger: true });
     }
   }
 
@@ -35,38 +121,47 @@ export default function Security() {
   }
 
   async function regenerateCodes() {
-    const email = sessionStorage.getItem("foxly_email") ?? "";
-    const data = await api<{ codes: string[] }>("/auth/signup/backup-codes", {
-      method: "POST",
-      body: JSON.stringify({ email }),
-    });
-    alert("New recovery codes:\n\n" + data.codes.join("\n"));
+    if (await dialog.confirm({ message: "Regenerating backup codes will invalidate all your old emergency codes. Proceed?" })) {
+      try {
+        const data = await api<{ codes: string[] }>("/auth/recovery/complete", {
+          method: "POST",
+        });
+        setBackupCodes(data.codes);
+      } catch (err) {
+        dialog.alert({ message: "Failed to regenerate codes: " + (err as Error).message, isDanger: true });
+      }
+    }
   }
 
   async function signoutEverywhere() {
-    if (confirm("Sign out everywhere?\n\nThis will sign you out on all devices. You will need to log in again.")) {
+    if (await dialog.confirm({ message: "Sign out everywhere?\n\nThis will sign you out on all devices. You will need to log in again.", isDanger: true })) {
       try {
         await api("/auth/signout-everywhere", { method: "POST" });
         router.push("/sign-in");
       } catch (err) {
-        alert("Failed: " + (err as Error).message);
+        dialog.alert({ message: "Failed: " + (err as Error).message, isDanger: true });
       }
     }
   }
 
   async function deleteAccount() {
-    if (confirm("Delete account permanently?\n\nThis action cannot be undone. All account data, devices, passkeys, and sessions will be permanently removed.")) {
+    if (await dialog.confirm({ message: "Delete account permanently?\n\nThis action cannot be undone. All account data, devices, passkeys, and sessions will be permanently removed.", confirmText: "Delete forever", isDanger: true })) {
       try {
         await api("/auth/delete-account", { method: "DELETE" });
         router.push("/sign-in");
       } catch (err) {
-        alert("Failed: " + (err as Error).message);
+        dialog.alert({ message: "Failed: " + (err as Error).message, isDanger: true });
       }
     }
   }
 
   return (
     <div>
+      {/* Backup codes modal */}
+      {backupCodes && (
+        <BackupCodesModal codes={backupCodes} onClose={() => setBackupCodes(null)} />
+      )}
+
       {/* Page header */}
       <div className="mb-8">
         <p className="text-xs text-on-surface-variant mb-1">

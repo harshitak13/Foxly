@@ -246,6 +246,15 @@ function runQuery(sql: string, params: unknown[] = []) {
   });
 }
 
+function addAuditRow(row: Omit<AuditRow, "id" | "createdAt">) {
+  const full: AuditRow = { ...row, id: randomUUID(), createdAt: new Date() };
+  auditRows.push(full);
+  runQuery(
+    `INSERT INTO audit_log (id, user_id, action, metadata, created_at) VALUES ($1, $2, $3, $4, $5)`,
+    [full.id, full.userId, full.action, full.metadata, full.createdAt]
+  );
+}
+
 export const store = {
   async upsertPendingUser(name: string, email: string) {
     const existing = [...users.values()].find((u) => u.email === email.toLowerCase());
@@ -305,6 +314,7 @@ export const store = {
         [u.sessionVersion, userId]
       );
 
+      addAuditRow({ userId, action: "auth.signout_everywhere", metadata: {} });
       this.addNotification(userId, "Logged out of all other active sessions.");
       return true;
     }
@@ -327,6 +337,21 @@ export const store = {
     // Remove notifications
     for (const [id, n] of userNotifications.entries()) {
       if (n.userId === userId) userNotifications.delete(id);
+    }
+
+    // Remove device link sessions
+    for (const [id, s] of deviceLinkSessions.entries()) {
+      if (s.userId === userId) deviceLinkSessions.delete(id);
+    }
+    // Remove auth link sessions
+    for (const [id, s] of authLinkSessions.entries()) {
+      if (s.userId === userId) authLinkSessions.delete(id);
+    }
+    // Remove from audit rows
+    for (let i = auditRows.length - 1; i >= 0; i--) {
+      if (auditRows[i].userId === userId) {
+        auditRows.splice(i, 1);
+      }
     }
 
     runQuery(`DELETE FROM users WHERE id = $1`, [userId]);
@@ -357,6 +382,7 @@ export const store = {
       [credential.id, credential.userId, credential.credentialId, credential.publicKey, credential.counter, credential.transports, credential.deviceLabel, credential.fingerprintHash, credential.createdAt]
     );
 
+    addAuditRow({ userId: credential.userId, action: "device.registered", metadata: { deviceLabel: credential.deviceLabel, credentialId: credential.credentialId } });
     this.addNotification(credential.userId, `New device paired: ${credential.deviceLabel}`);
     return credential;
   },
@@ -401,6 +427,7 @@ export const store = {
       [c.revokedAt, id]
     );
 
+    addAuditRow({ userId, action: "device.revoked", metadata: { deviceLabel: c.deviceLabel, credentialId: c.credentialId } });
     this.addNotification(userId, `Device revoked: ${c.deviceLabel}`);
     return true;
   },
@@ -423,6 +450,7 @@ export const store = {
         [row.id, row.userId, row.codeHash, row.used, row.createdAt]
       );
     }
+    addAuditRow({ userId, action: "security.backup_codes_regenerated", metadata: { count: plain.length } });
     this.addNotification(userId, "A fresh set of recovery codes was generated.");
     return plain;
   },
@@ -685,7 +713,10 @@ export const store = {
     return false;
   },
   auditRows: () => auditRows,
-  notifications: () => notifications
+  notifications: () => notifications,
+  addAuditRow(row: Omit<AuditRow, "id" | "createdAt">) {
+    addAuditRow(row);
+  },
 };
 function cryptoCode() { const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; const bytes = new Uint8Array(10); webcrypto.getRandomValues(bytes); return Array.from(bytes, (n) => alphabet[n % alphabet.length]).join("").replace(/(.{5})/, "$1-"); }
 function numericCode() { const bytes = new Uint8Array(6); webcrypto.getRandomValues(bytes); return Array.from(bytes, (n) => String(n % 10)).join(""); }

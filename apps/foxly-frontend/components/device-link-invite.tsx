@@ -13,7 +13,7 @@ interface DeviceLinkSession {
   expiresAt: string;
 }
 
-export function DeviceLinkInvite() {
+export function DeviceLinkInvite({ onDeviceAdded }: { onDeviceAdded?: () => void } = {}) {
   const [session, setSession] = useState<DeviceLinkSession | null>(null);
   const [status, setStatus] = useState<LinkStatus>("pending");
   const [error, setError] = useState("");
@@ -43,12 +43,15 @@ export function DeviceLinkInvite() {
       try {
         const data = await api<{ status: LinkStatus; expiresAt: string }>(`/api/device-link/${session.sessionId}/status`);
         setStatus(data.status);
+        if (data.status === "completed") {
+          onDeviceAdded?.();
+        }
       } catch (err) {
         setError((err as Error).message);
       }
     }, 2000);
     return () => window.clearInterval(interval);
-  }, [session, status]);
+  }, [session, status, onDeviceAdded]);
 
   const qrSrc = useMemo(() => {
     if (!session) return "";

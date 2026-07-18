@@ -2,21 +2,53 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
+import { useDevices } from "@/lib/use-devices";
+import { useActivity } from "@/lib/use-activity";
 
-const RECENT_ACTIVITY = [
-  { icon: "💻", title: "Sign-in from MacBook Pro", sub: "Chrome · San Francisco, US", time: "Just now", timeColor: "text-primary" },
-  { icon: "📱", title: "New Device Added: iPhone 15 Pro", sub: "Official App · London, UK", time: "2 hours ago", timeColor: "text-on-surface-variant" },
-  { icon: "👤", title: "Passkey Setup Complete", sub: "Hardware Token Auth", time: "Yesterday", timeColor: "text-on-surface-variant" },
-];
+// Uses the browser's locale automatically — no hardcoded "en-US"
+function formatRelative(iso: string | null): { label: string; color: string; absolute: string } {
+  if (!iso) return { label: "Just now", color: "text-primary", absolute: "" };
+  const date = new Date(iso);
+  const diffMs = Date.now() - date.getTime();
+  const diffSecs = Math.floor(diffMs / 1000);
+  const diffMins = Math.floor(diffSecs / 60);
+  const diffHrs  = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHrs / 24);
+
+  // Absolute timestamp in the user's own locale + timezone for the tooltip
+  const absolute = new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+
+  const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
+
+  let label: string;
+  if (diffSecs < 60)  label = rtf.format(-diffSecs, "second");
+  else if (diffMins < 60) label = rtf.format(-diffMins, "minute");
+  else if (diffHrs  < 24) label = rtf.format(-diffHrs,  "hour");
+  else                    label = rtf.format(-diffDays, "day");
+
+  const color = diffMins < 2 ? "text-primary" : "text-on-surface-variant";
+  return { label, color, absolute };
+}
+
 
 export default function Dashboard() {
   const router = useRouter();
-  const [devices, setDevices] = useState<any[]>([]);
+  const { devices } = useDevices();
+  const { activity, loading: activityLoading } = useActivity();
   const [approvals, setApprovals] = useState<any[]>([]);
 
+  // Real last sign-in: most recent auth.signin.* event from the activity feed
+  const lastSignIn = activity.find(
+    (a) => a.action === "auth.signin.success" || a.action === "auth.signin.recovery" || a.action === "device.authentication.completed"
+  ) ?? null;
+
   useEffect(() => {
-    api<any>("/devices").then((d) => setDevices(Array.isArray(d.devices) ? d.devices : [])).catch(() => {});
-    api<any>("/approvals?status=pending").then((d) => setApprovals(Array.isArray(d.approvals) ? d.approvals : [])).catch(() => {});
+    api<any>("/approvals?status=pending")
+      .then((d) => setApprovals(Array.isArray(d.approvals) ? d.approvals : []))
+      .catch(() => {});
   }, []);
 
   return (
@@ -29,7 +61,7 @@ export default function Dashboard() {
         </div>
         <div className="flex items-center gap-2 rounded-full border border-outline-variant bg-white px-4 py-2 text-sm font-semibold text-on-surface-variant shadow-sm">
           <span className="h-2.5 w-2.5 rounded-full bg-green-500 inline-block" />
-          Last Scanned: 2m ago
+          All systems active
         </div>
       </div>
 
@@ -40,7 +72,25 @@ export default function Dashboard() {
           <div>
             <p className="text-lg font-bold text-on-surface">Your account is secure</p>
             <p className="text-sm text-on-surface-variant">
-              Last sign-in: <strong>MacBook Pro 14</strong> · San Francisco, US · <span className="text-primary font-semibold">Just now</span>
+              {lastSignIn ? (() => {
+                const { label, color, absolute } = formatRelative(lastSignIn.createdAt);
+                return (
+                  <>
+                    Last sign-in:{" "}
+                    {lastSignIn.device && <strong>{lastSignIn.device} · </strong>}
+                    <span
+                      className={`font-semibold ${color}`}
+                      title={absolute}
+                    >
+                      {label}
+                    </span>
+                  </>
+                );
+              })() : devices.length === 0 ? (
+                "No devices registered yet."
+              ) : (
+                "Sign in again to record your last sign-in time."
+              )}
             </p>
           </div>
         </div>
@@ -55,8 +105,8 @@ export default function Dashboard() {
       {/* Stat cards */}
       <div className="mb-8 grid grid-cols-4 gap-4">
         {[
-          { icon: "💻", label: "Active Devices", value: devices.length || 0, badge: "SYSTEM", badgeColor: "bg-surface-container text-on-surface-variant" },
-          { icon: "📋", label: "Pending Approval", value: approvals.length || 0, badge: "ACTION", badgeColor: "bg-orange-100 text-orange-700" },
+          { icon: "💻", label: "Active Devices", value: devices.length, badge: "LIVE", badgeColor: "bg-green-100 text-green-700" },
+          { icon: "📋", label: "Pending Approval", value: approvals.length, badge: "ACTION", badgeColor: "bg-orange-100 text-orange-700" },
           { icon: "🔑", label: "Backup Codes Unused", value: 3, badge: "RESERVE", badgeColor: "bg-surface-container text-on-surface-variant" },
           { icon: "🚩", label: "Recent Risk Flags", value: 0, badge: "CLEAN", badgeColor: "bg-green-100 text-green-700" },
         ].map(({ icon, label, value, badge, badgeColor }) => (
@@ -80,18 +130,39 @@ export default function Dashboard() {
             <button onClick={() => router.push("/logs")} className="text-sm font-semibold text-primary hover:underline">View All</button>
           </div>
           <div className="rounded-xl border border-outline-variant bg-white shadow-sm divide-y divide-outline-variant">
-            {RECENT_ACTIVITY.map((item) => (
-              <div key={item.title} className="flex items-center justify-between px-5 py-4">
-                <div className="flex items-center gap-3">
-                  <div className="grid h-10 w-10 place-items-center rounded-full bg-surface-container text-lg shrink-0">{item.icon}</div>
-                  <div>
-                    <p className="text-sm font-semibold text-on-surface">{item.title}</p>
-                    <p className="text-xs text-on-surface-variant">{item.sub}</p>
-                  </div>
-                </div>
-                <span className={`text-xs font-semibold ${item.timeColor}`}>{item.time}</span>
+            {activityLoading ? (
+              <div className="px-5 py-8 flex items-center justify-center gap-2 text-sm text-on-surface-variant">
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                Loading activity...
               </div>
-            ))}
+            ) : activity.length === 0 ? (
+              <div className="px-5 py-8 text-center text-sm text-on-surface-variant">
+                No activity yet. Sign out and back in to see events here.
+              </div>
+            ) : (
+              activity.slice(0, 5).map((item) => {
+                const { label: timeLabel, color: timeColor, absolute } = formatRelative(item.createdAt);
+                return (
+                  <div key={item.id} className="flex items-center justify-between px-5 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="grid h-10 w-10 place-items-center rounded-full bg-surface-container text-lg shrink-0">{item.icon}</div>
+                      <div>
+                        <p className="text-sm font-semibold text-on-surface">{item.label}</p>
+                        <p className="text-xs text-on-surface-variant">
+                          {item.device ?? "Foxly account"}
+                        </p>
+                      </div>
+                    </div>
+                    <span
+                      className={`text-xs font-semibold ${timeColor}`}
+                      title={absolute}
+                    >
+                      {timeLabel}
+                    </span>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
 
