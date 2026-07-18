@@ -3,6 +3,9 @@ import { randomUUID, webcrypto } from "node:crypto";
 import type { Approval } from "shared-types";
 export interface User { id: string; name: string; email: string; emailVerified: boolean; usualLoginHours: number[]; sessionVersion?: number; role?: string; createdAt?: Date; }
 export interface Credential { id: string; userId: string; credentialId: string; publicKey: string; counter: number; transports: string[]; deviceLabel: string; fingerprintHash?: string; lastUsedAt?: Date; createdAt: Date; revokedAt?: Date; }
+export type DeviceLinkStatus = "pending" | "scanned" | "completed" | "expired";
+export interface DeviceLinkSession { id: string; userId: string; status: DeviceLinkStatus; createdAt: Date; expiresAt: Date; challenge?: string; emailCodeHash?: string; emailCodeExpiresAt?: Date; completedCredentialId?: string; }
+export interface AuthLinkSession { id: string; userId: string; status: DeviceLinkStatus; createdAt: Date; expiresAt: Date; challenge?: string; token?: string; completedCredentialId?: string; }
 interface BackupCode { id: string; userId: string; codeHash: string; used: boolean; usedAt?: Date; createdAt: Date; }
 interface AuditRow { id: string; userId?: string; approvalId?: string; action: string; metadata: unknown; createdAt: Date; }
 export interface Notification { id: string; userId: string; text: string; read: boolean; createdAt: Date; }
@@ -11,6 +14,8 @@ const users = new Map<string, User>();
 const credentials = new Map<string, Credential>();
 const backupCodes = new Map<string, BackupCode>();
 const approvals = new Map<string, Approval>();
+const deviceLinkSessions = new Map<string, DeviceLinkSession>();
+const authLinkSessions = new Map<string, AuthLinkSession>();
 const auditRows: AuditRow[] = [];
 const notifications: string[] = [];
 const userNotifications = new Map<string, Notification>();
@@ -38,6 +43,10 @@ export const store = {
   },
   findUserByEmail(email: string) { return [...users.values()].find((u) => u.email === email.toLowerCase()); },
   findUserById(id: string) { return users.get(id); },
+  publicUser(userId: string) {
+    const user = users.get(userId);
+    return user ? { id: user.id, email: user.email, name: user.name } : null;
+  },
   updateProfile(userId: string, name: string, email: string) {
     const u = users.get(userId);
     if (u) {
@@ -89,6 +98,15 @@ export const store = {
   credentialsForUser(userId: string) { return [...credentials.values()].filter((c) => c.userId === userId && !c.revokedAt); },
   findCredentialByExternalId(credentialId: string) { return [...credentials.values()].find((c) => c.credentialId === credentialId && !c.revokedAt); },
   updateCredentialCounter(id: string, counter: number) { const c = credentials.get(id); if (c) { c.counter = counter; c.lastUsedAt = new Date(); } },
+  auditDeviceAuth(userId: string, credential: Credential, source: string) {
+    auditRows.push({
+      id: randomUUID(),
+      userId,
+      action: "device.authentication.completed",
+      metadata: { credentialId: credential.credentialId, deviceName: credential.deviceLabel, source },
+      createdAt: new Date()
+    });
+  },
   revokeCredential(userId: string, id: string) {
     const c = credentials.get(id);
     if (!c || c.userId !== userId) return false;
@@ -106,6 +124,95 @@ export const store = {
     }
     this.addNotification(userId, "A fresh set of recovery codes was generated.");
     return plain;
+  },
+  createDeviceLinkSession(userId: string, ttlMs = 5 * 60_000) {
+    const session: DeviceLinkSession = {
+      id: randomUUID(),
+      userId,
+      status: "pending",
+      createdAt: new Date(),
+      expiresAt: new Date(Date.now() + ttlMs)
+    };
+    deviceLinkSessions.set(session.id, session);
+    auditRows.push({ id: randomUUID(), userId, action: "device_link.created", metadata: { sessionId: session.id }, createdAt: new Date() });
+    return session;
+  },
+  getDeviceLinkSession(id: string) {
+    const session = deviceLinkSessions.get(id);
+    if (!session) return null;
+    if (session.status !== "completed" && session.expiresAt.getTime() <= Date.now()) session.status = "expired";
+    return session;
+  },
+  markDeviceLinkScanned(id: string) {
+    const session = this.getDeviceLinkSession(id);
+    if (!session || session.status !== "pending") return session;
+    session.status = "scanned";
+    auditRows.push({ id: randomUUID(), userId: session.userId, action: "device_link.scanned", metadata: { sessionId: id }, createdAt: new Date() });
+    return session;
+  },
+  setDeviceLinkChallenge(id: string, challenge: string) {
+    const session = this.getDeviceLinkSession(id);
+    if (!session || session.status === "completed" || session.status === "expired") return null;
+    session.challenge = challenge;
+    return session;
+  },
+  async setDeviceLinkEmailCode(id: string) {
+    const session = this.getDeviceLinkSession(id);
+    if (!session || session.status === "completed" || session.status === "expired") return null;
+    const code = numericCode();
+    session.emailCodeHash = await bcrypt.hash(code, 10);
+    session.emailCodeExpiresAt = new Date(Date.now() + 5 * 60_000);
+    return code;
+  },
+  async validateDeviceLinkOwner(id: string, email: string, code: string) {
+    const session = this.getDeviceLinkSession(id);
+    const user = session ? users.get(session.userId) : null;
+    if (!session || !user || user.email !== email.toLowerCase()) return false;
+    if (!session.emailCodeHash || !session.emailCodeExpiresAt || session.emailCodeExpiresAt.getTime() <= Date.now()) return false;
+    return bcrypt.compare(code, session.emailCodeHash);
+  },
+  completeDeviceLinkSession(id: string, credentialId: string) {
+    const session = this.getDeviceLinkSession(id);
+    if (!session || session.status === "completed" || session.status === "expired") return null;
+    session.status = "completed";
+    session.completedCredentialId = credentialId;
+    auditRows.push({ id: randomUUID(), userId: session.userId, action: "device_link.completed", metadata: { sessionId: id, credentialId }, createdAt: new Date() });
+    this.addNotification(session.userId, "A backup sign-in device was registered.");
+    return session;
+  },
+  createAuthLinkSession(userId: string, ttlMs = 5 * 60_000) {
+    const session: AuthLinkSession = { id: randomUUID(), userId, status: "pending", createdAt: new Date(), expiresAt: new Date(Date.now() + ttlMs) };
+    authLinkSessions.set(session.id, session);
+    auditRows.push({ id: randomUUID(), userId, action: "auth_link.created", metadata: { sessionId: session.id }, createdAt: new Date() });
+    return session;
+  },
+  getAuthLinkSession(id: string) {
+    const session = authLinkSessions.get(id);
+    if (!session) return null;
+    if (session.status !== "completed" && session.expiresAt.getTime() <= Date.now()) session.status = "expired";
+    return session;
+  },
+  markAuthLinkScanned(id: string) {
+    const session = this.getAuthLinkSession(id);
+    if (!session || session.status !== "pending") return session;
+    session.status = "scanned";
+    auditRows.push({ id: randomUUID(), userId: session.userId, action: "auth_link.scanned", metadata: { sessionId: id }, createdAt: new Date() });
+    return session;
+  },
+  setAuthLinkChallenge(id: string, challenge: string) {
+    const session = this.getAuthLinkSession(id);
+    if (!session || session.status === "completed" || session.status === "expired") return null;
+    session.challenge = challenge;
+    return session;
+  },
+  completeAuthLinkSession(id: string, credentialId: string, token: string) {
+    const session = this.getAuthLinkSession(id);
+    if (!session || session.status === "completed" || session.status === "expired") return null;
+    session.status = "completed";
+    session.completedCredentialId = credentialId;
+    session.token = token;
+    auditRows.push({ id: randomUUID(), userId: session.userId, action: "auth_link.completed", metadata: { sessionId: id, credentialId }, createdAt: new Date() });
+    return session;
   },
   async consumeBackupCode(userId: string, code: string) {
     const candidates = [...backupCodes.values()].filter((c) => c.userId === userId && !c.used);
@@ -184,4 +291,5 @@ export const store = {
   notifications: () => notifications
 };
 function cryptoCode() { const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; const bytes = new Uint8Array(10); webcrypto.getRandomValues(bytes); return Array.from(bytes, (n) => alphabet[n % alphabet.length]).join("").replace(/(.{5})/, "$1-"); }
+function numericCode() { const bytes = new Uint8Array(6); webcrypto.getRandomValues(bytes); return Array.from(bytes, (n) => String(n % 10)).join(""); }
 

@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { useRouter } from "next/navigation";
+import { DeviceLinkInvite } from "@/components/device-link-invite";
 
 export default function Devices() {
   const router = useRouter();
@@ -162,6 +163,10 @@ export default function Devices() {
             Setup Backup Key
           </button>
         </div>
+      </div>
+
+      <div className="mx-auto max-w-xl">
+        <DeviceLinkInvite />
       </div>
     </div>
   );
