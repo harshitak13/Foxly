@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>Foxly | Verify Identity</title>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700&family=Inter:wght@400;600&family=JetBrains+Mono:wght@500&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script src="shared/theme.js"></script>
+  <style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    .fox-paw-container {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+    }
+    .fox-paw {
+      width: 8px;
+      height: 8px;
+      background-color: #a43d02;
+      border-radius: 2px;
+      opacity: 0.4;
+    }
+    .fox-paw.active {
+      animation: paw-walk 1.2s infinite ease-in-out;
+    }
+    @keyframes paw-walk {
+      0%, 100% { opacity: 0.4; transform: scale(1); }
+      25% { opacity: 1; transform: scale(1.2); }
+    }
+    .auth-card-shadow {
+      box-shadow: 0 10px 40px -10px rgba(28, 28, 25, 0.15);
+    }
+    input:focus { outline: none; }
+  </style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex flex-col font-body-md">
+  <!-- Top Navigation (Shell suppressed for transaction focus, but logo remains for identity) -->
+  <header class="w-full py-8 flex justify-center">
+    <div class="flex items-center gap-2">
+      <span class="material-symbols-outlined text-primary text-3xl">shield_person</span>
+      <h1 class="font-display text-headline-md font-bold text-primary tracking-tight">Foxly</h1>
+    </div>
+  </header>
+  
+  <main class="flex-grow flex items-center justify-center px-container-padding pb-stack-gap-lg">
+    <!-- Auth Card -->
+    <div class="w-full max-w-auth-card-max bg-white rounded-xl auth-card-shadow p-8 flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <!-- Alert Badge -->
+      <div class="mb-stack-gap-md p-4 rounded-full bg-[#E8A33D1A] flex items-center justify-center">
+        <span class="material-symbols-outlined text-alert-amber text-4xl">devices_fold</span>
+      </div>
+      <!-- Content Header -->
+      <div class="text-center mb-stack-gap-md">
+        <h2 class="font-display text-headline-md text-on-background mb-2">Help us verify it's you</h2>
+        <p class="font-body-md text-on-secondary-container">
+          This looks like a new device—confirm a backup code or approve this login from your other device.
+        </p>
+      </div>
+      <!-- Verification Form -->
+      <form class="w-full space-y-stack-gap-md" id="verifyForm">
+        <div class="space-y-stack-gap-sm">
+          <label class="font-label-md text-on-surface-variant block" for="backupCode">
+            Backup Verification Code
+          </label>
+          <div class="relative">
+            <input class="w-full h-12 px-4 bg-surface-container-lowest border border-outline-variant rounded-lg font-mono-code text-center tracking-widest focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none uppercase" id="backupCode" maxlength="14" placeholder="XXXX - XXXX" type="text"/>
+            <div class="absolute right-3 top-1/2 -translate-y-1/2 text-outline-variant">
+              <span class="material-symbols-outlined text-xl">key</span>
+            </div>
+          </div>
+        </div>
+        <button class="w-full h-12 bg-primary hover:bg-primary-container text-white font-bold rounded-lg transition-all active:scale-95 flex items-center justify-center gap-2" type="submit">
+          Verify Identity
+          <span class="material-symbols-outlined text-xl">arrow_forward</span>
+        </button>
+      </form>
+      <!-- Divider -->
+      <div class="w-full flex items-center gap-4 my-stack-gap-md">
+        <div class="h-px flex-grow bg-outline-variant"></div>
+        <span class="font-label-md text-outline-variant uppercase text-[10px] tracking-widest">OR</span>
+        <div class="h-px flex-grow bg-outline-variant"></div>
+      </div>
+      <!-- Secondary Action -->
+      <button onclick="simulateOtherDeviceApproval()" class="w-full h-12 border border-outline bg-transparent text-secondary hover:bg-surface-container-low font-bold rounded-lg transition-all active:scale-95 flex items-center justify-center gap-2">
+        <span class="material-symbols-outlined text-xl">smartphone</span>
+        Approve on another device
+      </button>
+      <!-- Support Link -->
+      <p class="mt-stack-gap-lg font-label-md text-on-secondary-container text-center">
+        Can't access your backup codes? 
+        <a class="text-primary hover:underline transition-all" href="#">Contact Support</a>
+      </p>
+    </div>
+  </main>
+  
+  <!-- Footer Component (Minimal for focus) -->
+  <footer class="w-full py-8 mt-auto flex flex-col items-center justify-center gap-4 px-container-padding bg-surface-container-low border-t border-outline-variant">
+    <div class="flex items-center gap-6">
+      <a class="font-label-md text-on-surface-variant hover:text-primary transition-colors" href="#">Privacy Policy</a>
+      <a class="font-label-md text-on-surface-variant hover:text-primary transition-colors" href="#">Terms of Service</a>
+      <a class="font-label-md text-on-surface-variant hover:text-primary transition-colors" href="#">Status</a>
+    </div>
+    <p class="font-label-md text-on-secondary-container">© 2024 Foxly Security Platform</p>
+  </footer>
+  
+  <!-- Micro-interaction for loading state -->
+  <div class="fixed inset-0 bg-background/80 backdrop-blur-sm hidden items-center justify-center z-50" id="loadingOverlay">
+    <div class="flex flex-col items-center gap-4">
+      <div class="fox-paw-container">
+        <div class="fox-paw active" style="animation-delay: 0s;"></div>
+        <div class="fox-paw active" style="animation-delay: 0.2s;"></div>
+        <div class="fox-paw active" style="animation-delay: 0.4s;"></div>
+        <div class="fox-paw active" style="animation-delay: 0.6s;"></div>
+      </div>
+      <p id="loadingText" class="font-label-md text-primary animate-pulse">Securing your session...</p>
+    </div>
+  </div>
+  
+  <script>
+    document.getElementById('verifyForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const overlay = document.getElementById('loadingOverlay');
+      overlay.classList.remove('hidden');
+      overlay.classList.add('flex');
+      
+      // Simulate API call and redirect to dashboard
+      setTimeout(() => {
+        overlay.classList.add('hidden');
+        overlay.classList.remove('flex');
+        window.location.href = 'dashboard.html';
+      }, 2000);
+    });
+
+    function simulateOtherDeviceApproval() {
+      const overlay = document.getElementById('loadingOverlay');
+      const text = document.getElementById('loadingText');
+      text.innerText = "Send request to iPhone 15 Pro...";
+      overlay.classList.remove('hidden');
+      overlay.classList.add('flex');
+      
+      setTimeout(() => {
+        text.innerText = "Approved on other device. Signing in...";
+        setTimeout(() => {
+          overlay.classList.add('hidden');
+          overlay.classList.remove('flex');
+          window.location.href = 'dashboard.html';
+        }, 1200);
+      }, 2500);
+    }
+
+    // Simple formatter for backup code input
+    const codeInput = document.getElementById('backupCode');
+    codeInput.addEventListener('input', (e) => {
+      let val = e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+      let formatted = '';
+      for(let i = 0; i < val.length && i < 8; i++) {
+        if(i === 4) formatted += ' - ';
+        formatted += val[i];
+      }
+      e.target.value = formatted;
+    });
+  </script>
+</body>
+</html>

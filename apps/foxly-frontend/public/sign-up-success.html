@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Foxly | You're all set!</title>
+  <meta name="description" content="Your Foxly account has been created successfully. Welcome to secure Guardian access.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700;800&family=Inter:wght@400;600&family=JetBrains+Mono:wght@500&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script src="shared/theme.js"></script>
+  <style>
+    .material-symbols-outlined { font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; }
+    .fox-paw-container { display:flex; gap:12px; justify-content:center; margin-bottom:2rem; }
+    .fox-paw-pad { width:12px; height:12px; background-color:#a43d02; border-radius:4px; opacity:0.2; }
+    .fox-paw-pad.active { animation: paw-walk 1.2s infinite ease-in-out; }
+    @keyframes paw-walk {
+      0%,20%  { opacity:0.2; transform:scale(1); }
+      50%     { opacity:1;   transform:scale(1.2); }
+      80%,100%{ opacity:0.2; transform:scale(1); }
+    }
+    .fox-paw-pad:nth-child(2) { animation-delay:0.3s; }
+    .fox-paw-pad:nth-child(3) { animation-delay:0.6s; }
+    .fox-paw-pad:nth-child(4) { animation-delay:0.9s; }
+    .success-float { animation: float 6s ease-in-out infinite; }
+    @keyframes float { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-10px);} }
+    .confetti-piece { position:absolute; width:8px; height:8px; border-radius:2px; opacity:0.6; }
+  </style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex flex-col font-body-md overflow-x-hidden">
+
+  <!-- Branded header (transactional — no full nav) -->
+  <header class="w-full flex justify-center items-center py-stack-gap-lg bg-surface">
+    <div class="flex items-center gap-3">
+      <span class="material-symbols-outlined text-[36px] text-primary" style="font-variation-settings:'FILL' 1;">security</span>
+      <span class="font-display text-headline-md font-bold text-primary">Foxly</span>
+    </div>
+  </header>
+
+  <main class="flex-grow flex items-center justify-center px-container-padding py-stack-gap-lg">
+    <div class="w-full max-w-auth-card-max bg-surface-container-lowest rounded-xl shadow-[0_20px_50px_rgba(28,28,25,0.08)] p-stack-gap-lg text-center relative overflow-hidden success-float">
+
+      <!-- Confetti -->
+      <div id="confetti-container" class="absolute inset-0 pointer-events-none"></div>
+
+      <!-- Content -->
+      <div class="relative z-10">
+        <div aria-hidden="true" class="fox-paw-container">
+          <div class="fox-paw-pad active"></div>
+          <div class="fox-paw-pad active"></div>
+          <div class="fox-paw-pad active"></div>
+          <div class="fox-paw-pad active"></div>
+        </div>
+
+        <div class="mb-stack-gap-md inline-flex items-center justify-center w-24 h-24 rounded-full bg-tertiary-fixed text-on-tertiary-fixed-variant">
+          <span class="material-symbols-outlined text-5xl" style="font-variation-settings:'FILL' 1;">task_alt</span>
+        </div>
+
+        <h1 class="font-headline-lg text-headline-lg text-on-surface mb-stack-gap-sm">You're all set</h1>
+        <p class="font-body-lg text-body-lg text-secondary mb-stack-gap-lg">
+          Your Foxly account is ready and secured. Welcome to the clever side of security.
+        </p>
+
+        <button
+          onclick="window.location.href='dashboard.html'"
+          class="w-full py-4 px-8 bg-primary hover:bg-primary-container text-on-primary font-bold rounded-lg transition-all active:scale-95 shadow-md flex items-center justify-center gap-2 group">
+          <span class="font-label-md text-label-md">Go to Dashboard</span>
+          <span class="material-symbols-outlined transition-transform group-hover:translate-x-1">arrow_forward</span>
+        </button>
+
+        <div class="mt-stack-gap-md flex flex-col gap-stack-gap-sm items-center">
+          <div class="flex items-center gap-2 px-4 py-2 bg-surface-container rounded-full text-secondary">
+            <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">verified_user</span>
+            <span class="font-label-md text-label-md uppercase tracking-wider">Secure Connection Active</span>
+          </div>
+          <p class="font-label-md text-secondary mt-2">
+            Need to sign in again?
+            <a href="index.html" class="text-primary hover:underline ml-1">Sign In</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="w-full flex flex-col md:flex-row justify-center items-center gap-stack-gap-md py-stack-gap-lg bg-transparent">
+    <p class="font-label-md text-label-md text-secondary">© 2024 Foxly Security. All rights reserved.</p>
+    <div class="flex gap-stack-gap-md">
+      <a href="#" class="font-label-md text-label-md text-secondary hover:text-primary transition-colors">Help Center</a>
+      <a href="#" class="font-label-md text-label-md text-secondary hover:text-primary transition-colors">Privacy Policy</a>
+    </div>
+  </footer>
+
+  <script>
+    function createConfetti() {
+      const container = document.getElementById('confetti-container');
+      const colors = ['#a43d02','#386545','#D9642C','#a1d2aa'];
+      for (let i = 0; i < 40; i++) {
+        const c = document.createElement('div');
+        c.className = 'confetti-piece';
+        c.style.left = Math.random() * 100 + '%';
+        c.style.top  = Math.random() * 100 + '%';
+        c.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        c.style.transform = `rotate(${Math.random() * 360}deg)`;
+        c.animate([
+          { transform:`translate(0,0) rotate(0deg)`, opacity:0 },
+          { transform:`translate(${Math.random()*40-20}px,${Math.random()*40-20}px) rotate(${Math.random()*180}deg)`, opacity:0.6 },
+          { transform:`translate(${Math.random()*60-30}px,${Math.random()*60-30}px) rotate(${Math.random()*360}deg)`, opacity:0 },
+        ], { duration:(2+Math.random()*3)*1000, iterations:Infinity, direction:'alternate', easing:'ease-in-out' });
+        container.appendChild(c);
+      }
+    }
+    document.addEventListener('DOMContentLoaded', createConfetti);
+  </script>
+</body>
+</html>

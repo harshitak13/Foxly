@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Foxly | Create Account</title>
+  <meta name="description" content="Create your Foxly account — secure, passkey-first authentication.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700;800&family=Inter:wght@400;600&family=JetBrains+Mono:wght@500&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script src="shared/theme.js"></script>
+  <style>
+    .material-symbols-outlined { font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; }
+    body { background-color:#FAF6F1; font-family:'Inter',sans-serif; }
+    .auth-card { box-shadow:0 10px 40px -10px rgba(28,28,25,0.15); }
+    .fox-paw-container { display:flex; gap:4px; }
+    .fox-paw { width:8px; height:8px; background-color:#a03b00; border-radius:2px; opacity:0.4; }
+    .fox-paw.active { opacity:1; animation:paw-step 1s infinite; }
+    @keyframes paw-step { 0%,100%{transform:scale(1);} 50%{transform:scale(1.2);} }
+    .hidden-section { display:none; }
+    input:focus { outline:none; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4 sm:p-container-padding">
+
+  <main class="w-full max-w-auth-card-max">
+    <div class="auth-card bg-surface-container-lowest rounded-xl overflow-hidden p-8 sm:p-10 flex flex-col gap-stack-gap-lg border border-outline-variant/30">
+
+      <!-- Header -->
+      <div class="flex flex-col items-center text-center gap-2">
+        <div class="w-14 h-14 rounded-xl bg-primary-fixed flex items-center justify-center mb-2">
+          <span class="material-symbols-outlined text-[36px] text-primary" style="font-variation-settings:'FILL' 1;">security</span>
+        </div>
+        <h1 id="step-title" class="font-headline-lg text-headline-lg text-on-background tracking-tight">Create your Foxly account</h1>
+      </div>
+
+      <!-- Step dots indicator -->
+      <div class="flex justify-center items-center gap-2">
+        <div id="dot-1" class="w-2 h-2 rounded-full bg-fox-red transition-colors"></div>
+        <div id="dot-2" class="w-2 h-2 rounded-full bg-outline-variant transition-colors"></div>
+        <div id="dot-3" class="w-2 h-2 rounded-full bg-outline-variant transition-colors"></div>
+        <div id="dot-4" class="w-2 h-2 rounded-full bg-outline-variant transition-colors"></div>
+      </div>
+
+      <!-- Section 1: Name & Email -->
+      <div id="section-1" class="flex flex-col gap-stack-gap-md">
+        <div class="flex flex-col gap-stack-gap-sm">
+          <label class="font-label-md text-label-md text-on-surface-variant" for="full-name">Full name</label>
+          <input id="full-name" type="text" placeholder="E.g. Rowan Vulpis"
+            class="w-full h-12 px-4 rounded-lg border border-outline-variant focus:border-fox-red focus:ring-1 focus:ring-fox-red transition-all text-body-md bg-surface-bright">
+        </div>
+        <div class="flex flex-col gap-stack-gap-sm">
+          <label class="font-label-md text-label-md text-on-surface-variant" for="signup-email">Email address</label>
+          <input id="signup-email" type="email" placeholder="name@company.com"
+            class="w-full h-12 px-4 rounded-lg border border-outline-variant focus:border-fox-red focus:ring-1 focus:ring-fox-red transition-all text-body-md bg-surface-bright">
+        </div>
+        <button onclick="goToStep(2)"
+          class="w-full h-12 bg-fox-red text-on-primary font-bold rounded-lg hover:scale-[1.02] active:scale-[0.98] transition-transform flex items-center justify-center gap-2 shadow-lg shadow-fox-red/20">
+          Continue
+          <span class="material-symbols-outlined text-body-md">arrow_forward</span>
+        </button>
+        <p class="text-center font-label-md text-on-surface-variant">
+          Already have an account?
+          <a href="index.html" class="text-fox-red font-bold hover:underline ml-1">Sign In</a>
+        </p>
+      </div>
+
+      <!-- Section 2: Password -->
+      <div id="section-2" class="hidden-section flex flex-col gap-stack-gap-md">
+        <div class="flex flex-col gap-stack-gap-sm">
+          <label class="font-label-md text-label-md text-on-surface-variant" for="password">Create password</label>
+          <input id="password" type="password" placeholder="At least 12 characters"
+            class="w-full h-12 px-4 rounded-lg border border-outline-variant focus:border-fox-red focus:ring-1 focus:ring-fox-red transition-all text-body-md bg-surface-bright">
+        </div>
+        <div class="flex flex-col gap-stack-gap-sm">
+          <label class="font-label-md text-label-md text-on-surface-variant" for="confirm-password">Confirm password</label>
+          <input id="confirm-password" type="password" placeholder="Repeat your password"
+            class="w-full h-12 px-4 rounded-lg border border-outline-variant focus:border-fox-red focus:ring-1 focus:ring-fox-red transition-all text-body-md bg-surface-bright">
+        </div>
+        <button onclick="goToStep(3)"
+          class="w-full h-12 bg-fox-red text-on-primary font-bold rounded-lg hover:scale-[1.02] active:scale-[0.98] transition-transform flex items-center justify-center gap-2 shadow-lg shadow-fox-red/20">
+          Continue
+          <span class="material-symbols-outlined text-body-md">arrow_forward</span>
+        </button>
+        <button onclick="goToStep(1)" class="text-secondary font-label-md hover:text-fox-red transition-colors self-center">← Go back</button>
+      </div>
+
+      <!-- Section 3: Passkey -->
+      <div id="section-3" class="hidden-section flex flex-col gap-stack-gap-md items-center">
+        <div class="w-20 h-20 bg-surface-container-highest rounded-full flex items-center justify-center mb-2">
+          <span class="material-symbols-outlined text-fox-red text-4xl" style="font-variation-settings:'FILL' 1;">fingerprint</span>
+        </div>
+        <div class="text-center">
+          <p class="font-body-lg text-body-lg text-on-surface leading-snug">Set up Foxly to recognize this device</p>
+          <p class="font-body-md text-body-md text-on-surface-variant mt-2">Passkeys provide a faster, more secure way to sign in without typing a password.</p>
+        </div>
+        <button id="passkey-btn" onclick="simulatePasskey()"
+          class="w-full h-12 bg-fox-red text-on-primary font-bold rounded-lg hover:scale-[1.02] active:scale-[0.98] transition-transform flex items-center justify-center gap-2 shadow-lg shadow-fox-red/20">
+          <span class="material-symbols-outlined">passkey</span>
+          Use Passkey
+        </button>
+        <div id="fox-loader" class="hidden flex items-center gap-2 text-primary font-label-md">
+          <div class="fox-paw-container">
+            <div class="fox-paw active"></div>
+            <div class="fox-paw" style="animation-delay:0.2s"></div>
+            <div class="fox-paw" style="animation-delay:0.4s"></div>
+            <div class="fox-paw" style="animation-delay:0.6s"></div>
+          </div>
+          Waiting for device...
+        </div>
+        <button onclick="goToStep(4)" class="text-secondary font-label-md hover:text-fox-red transition-colors">I'll set this up later</button>
+      </div>
+
+      <!-- Section 4: Backup Codes -->
+      <div id="section-4" class="hidden-section flex flex-col gap-stack-gap-md">
+        <p class="font-body-md text-body-md text-on-surface-variant text-center px-4">
+          Save these backup codes in a safe place. You can use them if you lose access to your passkey.
+        </p>
+        <div class="grid grid-cols-2 gap-2 bg-surface-container-low p-4 rounded-xl border border-outline-variant font-mono-code text-mono-code text-primary-container">
+          <div class="flex items-center gap-2"><span>1.</span><span>FX-8A2B-9C1D</span></div>
+          <div class="flex items-center gap-2"><span>2.</span><span>FX-3F4G-5H6J</span></div>
+          <div class="flex items-center gap-2"><span>3.</span><span>FX-7K8L-9M0P</span></div>
+          <div class="flex items-center gap-2"><span>4.</span><span>FX-1Q2R-3S4T</span></div>
+          <div class="flex items-center gap-2"><span>5.</span><span>FX-5U6V-7W8X</span></div>
+          <div class="flex items-center gap-2"><span>6.</span><span>FX-9Y0Z-1A2B</span></div>
+          <div class="flex items-center gap-2"><span>7.</span><span>FX-3C4D-5E6F</span></div>
+          <div class="flex items-center gap-2"><span>8.</span><span>FX-7G8H-9I0J</span></div>
+          <div class="flex items-center gap-2"><span>9.</span><span>FX-1K2L-3M4N</span></div>
+          <div class="flex items-center gap-2"><span>10.</span><span>FX-5O6P-7Q8R</span></div>
+        </div>
+        <button onclick="copyCodes(this)"
+          class="flex items-center justify-center gap-2 py-2 text-fox-red font-label-md hover:bg-fox-red/5 rounded-lg transition-colors">
+          <span class="material-symbols-outlined text-label-md">content_copy</span>
+          Copy codes
+        </button>
+        <div class="flex items-start gap-3 p-3 bg-surface-bright rounded-lg border border-outline-variant/50">
+          <input id="saved-check" type="checkbox"
+            class="mt-1 h-4 w-4 rounded border-outline-variant text-fox-red focus:ring-fox-red cursor-pointer">
+          <label for="saved-check" class="font-label-md text-label-md text-on-surface-variant cursor-pointer">
+            I've saved these codes in a secure location and understand I cannot recover them.
+          </label>
+        </div>
+        <button id="finish-btn" disabled
+          class="w-full h-12 bg-fox-red text-on-primary font-bold rounded-lg opacity-50 cursor-not-allowed transition-all shadow-lg shadow-fox-red/20">
+          Finish Setup
+        </button>
+      </div>
+
+    </div><!-- /auth card -->
+  </main>
+
+  <footer class="mt-8 flex flex-col items-center gap-4 px-container-padding">
+    <p class="font-label-md text-label-md text-on-secondary-container">© 2024 Foxly Security Platform</p>
+    <div class="flex gap-6">
+      <a href="#" class="font-label-md text-label-md text-on-surface-variant hover:text-fox-red transition-colors">Privacy Policy</a>
+      <a href="#" class="font-label-md text-label-md text-on-surface-variant hover:text-fox-red transition-colors">Terms of Service</a>
+    </div>
+  </footer>
+
+  <script>
+    function goToStep(step) {
+      const sections = [
+        document.getElementById('section-1'),
+        document.getElementById('section-2'),
+        document.getElementById('section-3'),
+        document.getElementById('section-4'),
+      ];
+      const title = document.getElementById('step-title');
+      const dots = [
+        document.getElementById('dot-1'),
+        document.getElementById('dot-2'),
+        document.getElementById('dot-3'),
+        document.getElementById('dot-4'),
+      ];
+
+      sections.forEach(s => s.classList.add('hidden-section'));
+      dots.forEach(d => d.className = 'w-2 h-2 rounded-full bg-outline-variant transition-colors');
+
+      sections[step - 1].classList.remove('hidden-section');
+      dots[step - 1].className = 'w-2 h-2 rounded-full bg-fox-red transition-colors';
+
+      const titles = [
+        'Create your Foxly account',
+        'Choose a password',
+        'Secure your login',
+        'Save your emergency codes',
+      ];
+      title.innerText = titles[step - 1];
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function simulatePasskey() {
+      const btn = document.getElementById('passkey-btn');
+      const loader = document.getElementById('fox-loader');
+      btn.classList.add('hidden');
+      loader.classList.remove('hidden');
+      setTimeout(() => { goToStep(4); }, 2000);
+    }
+
+    function copyCodes(btn) {
+      const original = btn.innerHTML;
+      btn.innerHTML = '<span class="material-symbols-outlined text-label-md">check</span> Copied!';
+      setTimeout(() => { btn.innerHTML = original; }, 2000);
+    }
+
+    document.getElementById('saved-check').addEventListener('change', function (e) {
+      const fin = document.getElementById('finish-btn');
+      if (e.target.checked) {
+        fin.disabled = false;
+        fin.classList.remove('opacity-50', 'cursor-not-allowed');
+        fin.classList.add('hover:scale-[1.02]', 'active:scale-[0.98]', 'cursor-pointer');
+      } else {
+        fin.disabled = true;
+        fin.classList.add('opacity-50', 'cursor-not-allowed');
+        fin.classList.remove('hover:scale-[1.02]', 'active:scale-[0.98]', 'cursor-pointer');
+      }
+    });
+
+    document.getElementById('finish-btn').addEventListener('click', function () {
+      if (!this.disabled) {
+        this.innerHTML = '<span class="material-symbols-outlined">check_circle</span> Success!';
+        this.classList.add('bg-tertiary');
+        this.classList.remove('bg-fox-red');
+        setTimeout(() => { window.location.href = 'sign-up-success.html'; }, 800);
+      }
+    });
+  </script>
+</body>
+</html>

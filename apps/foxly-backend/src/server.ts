@@ -12,13 +12,12 @@ import { sendDeviceLinkCodeEmail } from "./email.js";
 import { calculateRiskScore, hashFingerprint } from "./risk/index.js";
 import { store } from "./store.js";
 
-dotenv.config({ path: fileURLToPath(new URL("../.env.local", import.meta.url)) });
-dotenv.config({ path: fileURLToPath(new URL("../.env", import.meta.url)) });
+dotenv.config({ path: fileURLToPath(new URL("../.env.local", import.meta.url)), override: true });
+dotenv.config({ path: fileURLToPath(new URL("../.env", import.meta.url)), override: true });
 
 const app = express();
 const port = Number(process.env.PORT ?? 4000);
 const rpName = "Foxly";
-const rpID = process.env.RP_ID ?? "localhost";
 app.set("trust proxy", 1);
 const configuredOrigins = (process.env.FRONTEND_ORIGIN ?? "http://localhost:3000")
   .split(",")
@@ -40,7 +39,22 @@ app.use(cookieParser());
 async function currentUser(req: express.Request) { const payload = await verifyJwt(req.cookies?.foxly_session); if (!payload) return null; const user = store.findUserById(payload.sub); return user && user.sessionVersion === (payload.version ?? 0) ? user : null; }
 function expectedOrigins(req: express.Request) {
   const requestOrigin = req.get("origin");
-  return [...new Set([...configuredOrigins, ...(requestOrigin ? [requestOrigin] : [])])];
+  const host = req.get("x-forwarded-host") || req.get("host") || "";
+  const protocol = req.get("x-forwarded-proto") || (req.secure ? "https" : "http");
+  const derivedOrigin = `${protocol}://${host}`;
+  return [...new Set([...configuredOrigins, ...(requestOrigin ? [requestOrigin] : []), derivedOrigin])];
+}
+function getRpId(req: express.Request) {
+  const envRpId = process.env.RP_ID;
+  if (envRpId && envRpId !== "localhost" && !/^\d{1,3}(?:\.\d{1,3}){3}$/.test(envRpId)) {
+    return envRpId;
+  }
+  const host = req.get("x-forwarded-host") || req.get("host") || "";
+  const hostname = host.split(":")[0];
+  if (hostname && hostname !== "localhost" && !/^\d{1,3}(?:\.\d{1,3}){3}$/.test(hostname)) {
+    return hostname;
+  }
+  return "localhost";
 }
 function publicFrontendOrigin(req: express.Request) {
   return process.env.PUBLIC_FRONTEND_ORIGIN ?? req.get("origin") ?? origin;
@@ -58,11 +72,12 @@ function setSession(req: express.Request, res: express.Response, token: string) 
 }
 app.get("/health", (_req, res) => res.json({ ok: true, service: "foxly-backend" }));
 app.post("/auth/signup/init", async (req, res) => { const { name, email } = req.body; if (!name || !email) return res.status(400).json({ error: "name and email are required" }); const user = await store.upsertPendingUser(name, email); console.log(`[mock-email] verification sent to ${user.email}`); res.json({ userId: user.id, email: user.email, verified: user.emailVerified }); });
-app.post("/auth/signup/passkey/options", async (req, res) => { const user = store.findUserByEmail(req.body.email); if (!user) return res.status(404).json({ error: "user not found" }); const options = await generateRegistrationOptions({ rpName, rpID, userID: isoUint8Array.fromUTF8String(user.id), userName: user.email, userDisplayName: user.name, attestationType: "none" }); store.saveChallenge(`reg:${user.id}`, options.challenge); res.json(options); });
-app.post("/auth/signup/passkey/verify", async (req, res) => { const user = store.findUserByEmail(req.body.email); if (!user) return res.status(404).json({ error: "user not found" }); const expectedChallenge = store.takeChallenge(`reg:${user.id}`); if (!expectedChallenge) return res.status(400).json({ error: "registration challenge expired" }); const verification = await verifyRegistrationResponse({ response: req.body.attestation, expectedChallenge, expectedOrigin: expectedOrigins(req), expectedRPID: rpID, requireUserVerification: true }); if (!verification.verified || !verification.registrationInfo) return res.status(400).json({ error: "passkey verification failed" }); const { credentialID, credentialPublicKey, counter } = verification.registrationInfo; const fingerprintHash = hashFingerprint(req.get("user-agent") ?? "", req.body.stableClientId); store.addCredential({ userId: user.id, credentialId: credentialID, publicKey: isoBase64URL.fromBuffer(credentialPublicKey), counter, transports: req.body.attestation?.response?.transports ?? [], deviceLabel: req.body.deviceLabel ?? "Primary passkey", fingerprintHash }); res.json({ verified: true }); });
+app.post("/auth/signup/passkey/options", async (req, res) => { const user = store.findUserByEmail(req.body.email); if (!user) return res.status(404).json({ error: "user not found" }); const options = await generateRegistrationOptions({ rpName, rpID: getRpId(req), userID: isoUint8Array.fromUTF8String(user.id), userName: user.email, userDisplayName: user.name, attestationType: "none" }); store.saveChallenge(`reg:${user.id}`, options.challenge); res.json(options); });
+app.post("/auth/signup/passkey/verify", async (req, res) => { const user = store.findUserByEmail(req.body.email); if (!user) return res.status(404).json({ error: "user not found" }); const expectedChallenge = store.takeChallenge(`reg:${user.id}`); if (!expectedChallenge) return res.status(400).json({ error: "registration challenge expired" }); const verification = await verifyRegistrationResponse({ response: req.body.attestation, expectedChallenge, expectedOrigin: expectedOrigins(req), expectedRPID: getRpId(req), requireUserVerification: true }); if (!verification.verified || !verification.registrationInfo) return res.status(400).json({ error: "passkey verification failed" }); const { credentialID, credentialPublicKey, counter } = verification.registrationInfo; const fingerprintHash = hashFingerprint(req.get("user-agent") ?? "", req.body.stableClientId); store.addCredential({ userId: user.id, credentialId: credentialID, publicKey: isoBase64URL.fromBuffer(credentialPublicKey), counter, transports: req.body.attestation?.response?.transports ?? [], deviceLabel: req.body.deviceLabel ?? "Primary passkey", fingerprintHash }); res.json({ verified: true }); });
 app.post("/auth/signup/backup-codes", async (req, res) => { const user = store.findUserByEmail(req.body.email); if (!user) return res.status(404).json({ error: "user not found" }); const codes = await store.generateBackupCodes(user.id); const token = await issueJwt({ sub: user.id, email: user.email, role: "user", scope: "full", version: user.sessionVersion ?? 0 }); setSession(req, res, token); res.json({ codes }); });
-app.post("/auth/signin/init", async (req, res) => { const user = store.findUserByEmail(req.body.email); if (!user) { store.recordAttempt(req.body.email ?? "unknown", false); return res.status(404).json({ error: "user not found" }); } const allowCredentials = store.credentialsForUser(user.id).map((c) => ({ id: c.credentialId, type: "public-key" as const, transports: c.transports as AuthenticatorTransport[] })); const options = await generateAuthenticationOptions({ rpID, allowCredentials, userVerification: "preferred" }); store.saveChallenge(`auth:${user.id}`, options.challenge); res.json(options); });
-app.post("/auth/signin/verify", async (req, res) => { const user = store.findUserByEmail(req.body.email); if (!user) return res.status(404).json({ error: "user not found" }); const expectedChallenge = store.takeChallenge(`auth:${user.id}`); if (!expectedChallenge) return res.status(400).json({ error: "authentication challenge expired" }); const credential = store.findCredentialByExternalId(req.body.assertion?.id); if (!credential) return res.status(404).json({ error: "credential not found" }); const verification = await verifyAuthenticationResponse({ response: req.body.assertion, expectedChallenge, expectedOrigin: expectedOrigins(req), expectedRPID: rpID, authenticator: { credentialID: credential.credentialId, credentialPublicKey: isoBase64URL.toBuffer(credential.publicKey), counter: credential.counter, transports: credential.transports as AuthenticatorTransport[] }, requireUserVerification: true }); if (!verification.verified) { store.recordAttempt(user.email, false); return res.status(401).json({ error: "passkey assertion failed" }); } store.updateCredentialCounter(credential.id, verification.authenticationInfo.newCounter); store.auditDeviceAuth(user.id, credential, "native-passkey"); const fingerprintHash = hashFingerprint(req.get("user-agent") ?? "", req.body.stableClientId); const risk = calculateRiskScore({ userId: user.id, deviceKnown: fingerprintHash === credential.fingerprintHash, ip: req.ip ?? "", userAgent: req.get("user-agent") ?? "", stableClientId: req.body.stableClientId, failedAttempts: store.failedAttemptCount(user.email), loginHour: new Date().getHours(), usualLoginHours: user.usualLoginHours }); if (risk.policy === "PASSKEY_PLUS_BACKUP_CONFIRM") return res.json({ stepUp: "backup_code_required", risk }); if (risk.policy === "PASSKEY_PLUS_PUSH_APPROVAL_OTHER_DEVICE") { const approval = store.createApproval(user.id, "High-risk sign in", "Approve this sign-in from another trusted device."); return res.json({ stepUp: "push_approval_required", approval, risk }); } if (risk.policy === "BLOCK_AND_NOTIFY") return res.status(403).json({ stepUp: "blocked", risk }); store.recordAttempt(user.email, true); const token = await issueJwt({ sub: user.id, email: user.email, role: "user", scope: "full", version: user.sessionVersion ?? 0 }); setSession(req, res, token); res.json({ ok: true, risk }); });
+app.post("/auth/signin/init", async (req, res) => { const user = store.findUserByEmail(req.body.email); if (!user) { store.recordAttempt(req.body.email ?? "unknown", false); return res.status(404).json({ error: "user not found" }); } const allowCredentials = store.credentialsForUser(user.id).map((c) => ({ id: c.credentialId, type: "public-key" as const, transports: c.transports as AuthenticatorTransport[] })); const options = await generateAuthenticationOptions({ rpID: getRpId(req), allowCredentials, userVerification: "preferred" }); store.saveChallenge(`auth:${user.id}`, options.challenge); res.json(options); });
+app.post("/auth/signin/verify", async (req, res) => { const user = store.findUserByEmail(req.body.email); if (!user) return res.status(404).json({ error: "user not found" }); const expectedChallenge = store.takeChallenge(`auth:${user.id}`); if (!expectedChallenge) return res.status(400).json({ error: "authentication challenge expired" }); const credential = store.findCredentialByExternalId(req.body.assertion?.id); if (!credential) return res.status(404).json({ error: "credential not found" }); const verification = await verifyAuthenticationResponse({ response: req.body.assertion, expectedChallenge, expectedOrigin: expectedOrigins(req), expectedRPID: getRpId(req), authenticator: { credentialID: credential.credentialId, credentialPublicKey: isoBase64URL.toBuffer(credential.publicKey), counter: credential.counter, transports: credential.transports as AuthenticatorTransport[] }, requireUserVerification: true }); if (!verification.verified) { store.recordAttempt(user.email, false); return res.status(401).json({ error: "passkey assertion failed" }); } store.updateCredentialCounter(credential.id, verification.authenticationInfo.newCounter); store.auditDeviceAuth(user.id, credential, "native-passkey"); const fingerprintHash = hashFingerprint(req.get("user-agent") ?? "", req.body.stableClientId); const risk = calculateRiskScore({ userId: user.id, deviceKnown: fingerprintHash === credential.fingerprintHash, ip: req.ip ?? "", userAgent: req.get("user-agent") ?? "", stableClientId: req.body.stableClientId, failedAttempts: store.failedAttemptCount(user.email), loginHour: new Date().getHours(), usualLoginHours: user.usualLoginHours }); if (risk.policy === "PASSKEY_PLUS_BACKUP_CONFIRM") return res.json({ stepUp: "backup_code_required", risk }); if (risk.policy === "PASSKEY_PLUS_PUSH_APPROVAL_OTHER_DEVICE") { const approval = store.createApproval(user.id, "High-risk sign in", "Approve this sign-in from another trusted device."); return res.json({ stepUp: "push_approval_required", approval, risk }); } if (risk.policy === "BLOCK_AND_NOTIFY") return res.status(403).json({ stepUp: "blocked", risk }); store.recordAttempt(user.email, true); const token = await issueJwt({ sub: user.id, email: user.email, role: "user", scope: "full", version: user.sessionVersion ?? 0 }); setSession(req, res, token); res.json({ ok: true, risk }); });
+
 app.post("/api/device-link/create", async (req, res) => {
   const user = await currentUser(req);
   if (!user) return res.status(401).json({ error: "unauthorized" });
@@ -118,7 +133,7 @@ app.post("/api/device-link/:id/options", async (req, res) => {
   }
   const options = await generateRegistrationOptions({
     rpName,
-    rpID,
+    rpID: getRpId(req),
     userID: isoUint8Array.fromUTF8String(user.id),
     userName: user.email,
     userDisplayName: user.name,
@@ -147,7 +162,7 @@ app.post("/api/device-link/:id/complete", async (req, res) => {
     response: req.body.attestation,
     expectedChallenge: session.challenge,
     expectedOrigin: expectedOrigins(req),
-    expectedRPID: rpID,
+    expectedRPID: getRpId(req),
     requireUserVerification: true
   });
   if (!verification.verified || !verification.registrationInfo) return res.status(400).json({ error: "passkey verification failed" });

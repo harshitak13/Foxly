@@ -157,7 +157,7 @@ This design system uses **Tonal Layering** and **Subtle Shadows** to define hier
 - **Surface Tiers:**
     - **Level 0 (Base):** The warm off-white (#FAF6F1) background.
     - **Level 1 (Card):** White (#FFFFFF) surfaces used for the main auth card and list items, featuring a very soft, large-radius shadow (15% opacity of the Charcoal color).
-    - **Level 2 (Interactive):** Elements like buttons or active inputs use color fills or subtle 2px offsets to indicate "pressability."
+    - **Level 2 (Interactive):** Elements like borders or active inputs use color fills or subtle 2px offsets to indicate "pressability."
 - **Outlines:** Use low-contrast 1px borders (#E5E1DC) for input fields and list separators to maintain structure without creating visual noise.
 - **Motion:** Use a "Fox-paw" motif as a loading state—a sequence of four small geometric pads appearing in a rhythmic walking pattern.
 
