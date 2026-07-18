@@ -31,7 +31,7 @@ export default function Notifications() {
       await api("/notifications/read-all", { method: "POST" });
       fetchNotifications();
     } catch (err) {
-      dialog.alert({ message: "Failed to mark read: " + (err as Error).message, isDanger: true });
+      dialog.alert({ message: "Failed to mark read: " + (err as Error).message, variant: "error" });
     }
   };
 
@@ -40,7 +40,7 @@ export default function Notifications() {
       await api(`/notifications/${id}`, { method: "DELETE" });
       setNotifications((prev) => prev.filter((n) => n.id !== id));
     } catch (err) {
-      dialog.alert({ message: "Failed to delete notification: " + (err as Error).message, isDanger: true });
+      dialog.alert({ message: "Failed to delete notification: " + (err as Error).message, variant: "error" });
     }
   };
 

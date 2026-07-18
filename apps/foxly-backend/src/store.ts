@@ -3,7 +3,11 @@ import { randomUUID, webcrypto } from "node:crypto";
 import type { Approval } from "shared-types";
 import pg from "pg";
 import Redis from "ioredis";
+import dotenv from "dotenv";
+import { fileURLToPath } from "node:url";
 
+dotenv.config({ path: fileURLToPath(new URL("../.env.local", import.meta.url)), override: true });
+dotenv.config({ path: fileURLToPath(new URL("../.env", import.meta.url)), override: true });
 export interface User { id: string; name: string; email: string; emailVerified: boolean; usualLoginHours: number[]; sessionVersion?: number; role?: string; createdAt?: Date; }
 export interface Credential { id: string; userId: string; credentialId: string; publicKey: string; counter: number; transports: string[]; deviceLabel: string; fingerprintHash?: string; lastUsedAt?: Date; createdAt: Date; revokedAt?: Date; }
 export type DeviceLinkStatus = "pending" | "scanned" | "completed" | "expired";
@@ -34,9 +38,11 @@ const redis = redisUrl ? new Redis(redisUrl) : null;
 
 // Initialize tables and load data into memory Maps (Write-Through cache)
 async function initDb() {
+  console.log("initDb started, pool is:", !!pool);
   if (!pool) return;
   try {
     const client = await pool.connect();
+    console.log("Connected to pool");
     try {
       // Ensure uuid-ossp extension is enabled
       await client.query(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`);

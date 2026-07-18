@@ -30,7 +30,7 @@ export default function Approvals() {
       });
       setPending((prev) => prev.filter((a) => a.id !== id));
     } catch (err) {
-      dialog.alert({ message: (err as Error).message, isDanger: true });
+      dialog.alert({ message: (err as Error).message, variant: "error" });
     }
   }
 
@@ -41,7 +41,7 @@ export default function Approvals() {
       });
       setPending((prev) => prev.filter((a) => a.id !== id));
     } catch (err) {
-      dialog.alert({ message: (err as Error).message, isDanger: true });
+      dialog.alert({ message: (err as Error).message, variant: "error" });
     }
   }
 

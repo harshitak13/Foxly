@@ -41,12 +41,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   async function handleLogout() {
     setProfileDropdownOpen(false);
-    if (await dialog.confirm({ message: "Are you sure you want to log out?" })) {
+    if (await dialog.confirm({ message: "Are you sure you want to log out?", variant: "confirm" })) {
       try {
         await api("/auth/logout", { method: "POST" });
         router.push("/sign-in");
       } catch (err) {
-        dialog.alert({ message: "Logout failed: " + (err as Error).message, isDanger: true });
+        dialog.alert({ message: "Logout failed: " + (err as Error).message, variant: "error" });
       }
     }
   };

@@ -2,15 +2,22 @@
 
 import React, { createContext, useContext, useState, ReactNode, useCallback } from "react";
 
-type DialogType = "alert" | "confirm";
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+export type DialogVariant = "error" | "warning" | "info" | "confirm";
 
 interface DialogOptions {
   title?: string;
   message: string;
   confirmText?: string;
   cancelText?: string;
-  isDanger?: boolean; // Changes the confirm button to red
+  /** Visual style. error=red, warning=amber, info=primary-tinted, confirm=neutral. */
+  variant?: DialogVariant;
+  /** @deprecated – kept for back-compat; maps to variant:"error" when true */
+  isDanger?: boolean;
 }
+
+type DialogType = "alert" | "confirm";
 
 interface DialogState extends DialogOptions {
   id: string;
@@ -23,15 +30,62 @@ interface DialogContextValue {
   confirm: (options: DialogOptions | string) => Promise<boolean>;
 }
 
+// ─── Context ──────────────────────────────────────────────────────────────────
+
 const DialogContext = createContext<DialogContextValue | null>(null);
 
 export function useDialog() {
-  const context = useContext(DialogContext);
-  if (!context) {
-    throw new Error("useDialog must be used within a DialogProvider");
-  }
-  return context;
+  const ctx = useContext(DialogContext);
+  if (!ctx) throw new Error("useDialog must be used within a DialogProvider");
+  return ctx;
 }
+
+// ─── Visual config per variant ────────────────────────────────────────────────
+
+type VariantConfig = {
+  icon: string;
+  /** Tailwind classes for the icon badge */
+  badge: string;
+  /** Tailwind classes for the left accent strip */
+  strip: string;
+  /** Default title */
+  defaultTitle: string;
+};
+
+const VARIANTS: Record<DialogVariant, VariantConfig> = {
+  error: {
+    icon: "error",
+    badge: "bg-red-100 text-red-700",
+    strip: "bg-red-500",
+    defaultTitle: "Error",
+  },
+  warning: {
+    icon: "warning",
+    badge: "bg-amber-100 text-amber-700",
+    strip: "bg-amber-500",
+    defaultTitle: "Warning",
+  },
+  info: {
+    icon: "info",
+    badge: "bg-orange-100 text-[#a03b00]",
+    strip: "bg-[#a03b00]",
+    defaultTitle: "Info",
+  },
+  confirm: {
+    icon: "help",
+    badge: "bg-orange-100 text-[#a03b00]",
+    strip: "bg-[#a03b00]",
+    defaultTitle: "Confirm",
+  },
+};
+
+function resolveVariant(opts: DialogOptions, type: DialogType): DialogVariant {
+  if (opts.variant) return opts.variant;
+  if (opts.isDanger) return "error";
+  return type === "confirm" ? "confirm" : "info";
+}
+
+// ─── Provider ─────────────────────────────────────────────────────────────────
 
 export function DialogProvider({ children }: { children: ReactNode }) {
   const [dialogs, setDialogs] = useState<DialogState[]>([]);
@@ -41,12 +95,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
       const opts = typeof options === "string" ? { message: options } : options;
       setDialogs((prev) => [
         ...prev,
-        {
-          ...opts,
-          id: crypto.randomUUID(),
-          type: "alert",
-          resolve: () => resolve(),
-        },
+        { ...opts, id: crypto.randomUUID(), type: "alert", resolve: () => resolve() },
       ]);
     });
   }, []);
@@ -56,12 +105,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
       const opts = typeof options === "string" ? { message: options } : options;
       setDialogs((prev) => [
         ...prev,
-        {
-          ...opts,
-          id: crypto.randomUUID(),
-          type: "confirm",
-          resolve,
-        },
+        { ...opts, id: crypto.randomUUID(), type: "confirm", resolve },
       ]);
     });
   }, []);
@@ -77,59 +121,98 @@ export function DialogProvider({ children }: { children: ReactNode }) {
   return (
     <DialogContext.Provider value={{ alert, confirm }}>
       {children}
-      {dialogs.map((dialog) => (
-        <div
-          key={dialog.id}
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-on-surface/20 backdrop-blur-sm animate-in fade-in duration-200"
-        >
+
+      {dialogs.map((dialog) => {
+        const variant = resolveVariant(dialog, dialog.type);
+        const cfg = VARIANTS[variant];
+        const title = dialog.title ?? cfg.defaultTitle;
+        const isDestructive = variant === "error";
+
+        return (
+          /* Backdrop — solid dark scrim so the card is never transparent */
           <div
-            className="bg-surface-container-lowest rounded-2xl shadow-xl border border-outline-variant p-6 w-full max-w-md flex flex-col gap-4 animate-in zoom-in-95 duration-200"
-            role="dialog"
-            aria-modal="true"
+            key={dialog.id}
+            className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center sm:p-4 bg-black/50 backdrop-blur-[2px] animate-in fade-in duration-150"
+            onClick={(e) => {
+              // Allow closing info/alert by clicking outside; never for confirm
+              if (dialog.type === "alert" && e.target === e.currentTarget)
+                closeDialog(dialog.id, false);
+            }}
           >
-            <div className="flex items-start gap-4">
-              <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
-                  dialog.isDanger ? "bg-error-container text-error" : "bg-primary-container/20 text-primary"
-                }`}
-              >
-                <span className="material-symbols-outlined">
-                  {dialog.type === "confirm" ? "help" : dialog.isDanger ? "error" : "info"}
-                </span>
-              </div>
-              <div className="flex-1 mt-1">
-                <h3 className="font-headline-md text-on-surface text-lg font-bold">
-                  {dialog.title || (dialog.type === "confirm" ? "Confirm" : "Alert")}
-                </h3>
-                <p className="font-body-md text-on-surface-variant mt-2 whitespace-pre-wrap">
-                  {dialog.message}
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex justify-end gap-3 mt-2">
-              {dialog.type === "confirm" && (
-                <button
-                  onClick={() => closeDialog(dialog.id, false)}
-                  className="px-4 py-2 rounded-lg font-label-md text-on-surface-variant hover:bg-surface-container-low transition-colors"
+            {/* Card — always solid white, shadow provides depth */}
+            <div
+              className="
+                relative overflow-hidden
+                bg-white
+                w-full sm:max-w-md
+                rounded-t-2xl sm:rounded-2xl
+                shadow-2xl
+                border border-gray-200
+                flex flex-col
+                animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-200
+              "
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby={`dialog-title-${dialog.id}`}
+            >
+              {/* Coloured left accent strip (visible on sm+) / top strip (mobile) */}
+              <div className={`absolute left-0 top-0 h-full w-1 ${cfg.strip} hidden sm:block`} />
+              <div className={`absolute top-0 left-0 w-full h-1 ${cfg.strip} sm:hidden`} />
+
+              {/* Body */}
+              <div className="flex items-start gap-4 p-6 sm:pl-8">
+                {/* Icon badge */}
+                <div
+                  className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${cfg.badge}`}
                 >
-                  {dialog.cancelText || "Cancel"}
+                  <span className="material-symbols-outlined text-xl select-none">{cfg.icon}</span>
+                </div>
+
+                {/* Text */}
+                <div className="flex-1 min-w-0">
+                  <h3
+                    id={`dialog-title-${dialog.id}`}
+                    className="text-base font-bold text-gray-900 font-display"
+                  >
+                    {title}
+                  </h3>
+                  <p className="mt-1.5 text-sm text-gray-600 whitespace-pre-wrap leading-relaxed">
+                    {dialog.message}
+                  </p>
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="h-px bg-gray-100 mx-6" />
+
+              {/* Actions */}
+              <div className="flex justify-end items-center gap-3 px-6 py-4">
+                {dialog.type === "confirm" && (
+                  <button
+                    onClick={() => closeDialog(dialog.id, false)}
+                    className="px-4 py-2 rounded-lg text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors active:scale-95"
+                  >
+                    {dialog.cancelText ?? "Cancel"}
+                  </button>
+                )}
+
+                <button
+                  onClick={() => closeDialog(dialog.id, true)}
+                  className={`
+                    px-5 py-2 rounded-lg text-sm font-semibold text-white transition-all active:scale-95
+                    ${isDestructive
+                      ? "bg-red-600 hover:bg-red-700 shadow-sm shadow-red-200"
+                      : "bg-[#a03b00] hover:bg-[#8a3200] shadow-sm shadow-orange-200"
+                    }
+                  `}
+                >
+                  {dialog.confirmText ?? (dialog.type === "confirm" ? "Confirm" : "OK")}
                 </button>
-              )}
-              <button
-                onClick={() => closeDialog(dialog.id, true)}
-                className={`px-4 py-2 rounded-lg font-label-md transition-colors ${
-                  dialog.isDanger
-                    ? "bg-error text-white hover:bg-error/90"
-                    : "bg-primary text-white hover:bg-primary/90"
-                }`}
-              >
-                {dialog.confirmText || "OK"}
-              </button>
+              </div>
             </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </DialogContext.Provider>
   );
 }

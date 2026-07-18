@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { startRegistration } from "@simplewebauthn/browser";
 import { api, stableClientId } from "@/lib/api";
 import { useDialog } from "@/components/dialog-provider";
+import { useDevices } from "@/lib/use-devices";
 
 // ─── Backup Codes Modal ───────────────────────────────────────────────────────
 
@@ -93,6 +94,9 @@ export default function Security() {
   const [devices, setDevices] = useState<any[]>([]);
   const [backupCodes, setBackupCodes] = useState<string[] | null>(null);
   const dialog = useDialog();
+  // useDevices gives us the shared module-level cache; refresh() propagates
+  // the new credential to every page that uses it (e.g. /devices).
+  const { refresh: refreshSharedDeviceCache } = useDevices();
 
   useEffect(() => {
     api<any>("/devices").then((d) => setDevices(Array.isArray(d.devices) ? d.devices : [])).catch(() => {});
@@ -108,10 +112,33 @@ export default function Security() {
         method: "POST",
         body: JSON.stringify({ attestation, stableClientId: stableClientId(), deviceLabel: "Additional passkey" }),
       });
+      // Refresh both local state AND the shared cache (used by /devices page)
       const d = await api<any>("/devices");
-      setDevices(Array.isArray(d.devices) ? d.devices : []);
+      const fresh = Array.isArray(d.devices) ? d.devices : [];
+      setDevices(fresh);
+      await refreshSharedDeviceCache();
+      await dialog.alert({
+        title: "Passkey added",
+        message: "Your new passkey was registered successfully. It will now appear in your Devices list and can be used to sign in.",
+        variant: "info",
+        confirmText: "Got it",
+      });
     } catch (err) {
-      dialog.alert({ message: (err as Error).message, isDanger: true });
+      const msg = (err as Error).message ?? "";
+      const cancelled =
+        msg.toLowerCase().includes("not allowed") ||
+        msg.toLowerCase().includes("timed out") ||
+        msg.toLowerCase().includes("cancelled") ||
+        msg.toLowerCase().includes("abort");
+      if (cancelled) {
+        // User dismissed the browser passkey prompt — no alert needed
+        return;
+      }
+      await dialog.alert({
+        title: "Passkey registration failed",
+        message: msg || "Something went wrong while registering the passkey. Please try again.",
+        variant: "error",
+      });
     }
   }
 
@@ -121,36 +148,36 @@ export default function Security() {
   }
 
   async function regenerateCodes() {
-    if (await dialog.confirm({ message: "Regenerating backup codes will invalidate all your old emergency codes. Proceed?" })) {
+    if (await dialog.confirm({ message: "Regenerating backup codes will invalidate all your old emergency codes. Proceed?", variant: "warning" })) {
       try {
         const data = await api<{ codes: string[] }>("/auth/recovery/complete", {
           method: "POST",
         });
         setBackupCodes(data.codes);
       } catch (err) {
-        dialog.alert({ message: "Failed to regenerate codes: " + (err as Error).message, isDanger: true });
+        dialog.alert({ message: "Failed to regenerate codes: " + (err as Error).message, variant: "error" });
       }
     }
   }
 
   async function signoutEverywhere() {
-    if (await dialog.confirm({ message: "Sign out everywhere?\n\nThis will sign you out on all devices. You will need to log in again.", isDanger: true })) {
+    if (await dialog.confirm({ title: "Sign out everywhere", message: "Sign out everywhere?\n\nThis will sign you out on all devices. You will need to log in again.", variant: "warning", confirmText: "Sign out" })) {
       try {
         await api("/auth/signout-everywhere", { method: "POST" });
         router.push("/sign-in");
       } catch (err) {
-        dialog.alert({ message: "Failed: " + (err as Error).message, isDanger: true });
+        dialog.alert({ message: "Failed: " + (err as Error).message, variant: "error" });
       }
     }
   }
 
   async function deleteAccount() {
-    if (await dialog.confirm({ message: "Delete account permanently?\n\nThis action cannot be undone. All account data, devices, passkeys, and sessions will be permanently removed.", confirmText: "Delete forever", isDanger: true })) {
+    if (await dialog.confirm({ title: "Delete account", message: "Delete account permanently?\n\nThis action cannot be undone. All account data, devices, passkeys, and sessions will be permanently removed.", confirmText: "Delete forever", variant: "error" })) {
       try {
         await api("/auth/delete-account", { method: "DELETE" });
         router.push("/sign-in");
       } catch (err) {
-        dialog.alert({ message: "Failed: " + (err as Error).message, isDanger: true });
+        dialog.alert({ message: "Failed: " + (err as Error).message, variant: "error" });
       }
     }
   }

@@ -25,12 +25,12 @@ export default function Devices() {
   const dialog = useDialog();
 
   const handleRevoke = async (id: string) => {
-    if (await dialog.confirm({ message: "Are you sure you want to revoke this device?", isDanger: true })) {
+    if (await dialog.confirm({ title: "Revoke device", message: "Are you sure you want to revoke this device?", confirmText: "Revoke", variant: "error" })) {
       try {
         await api(`/devices/${id}`, { method: "DELETE" });
-        refresh(); // instant update — no page reload needed
+        refresh();
       } catch (err) {
-        dialog.alert({ message: (err as Error).message, isDanger: true });
+        dialog.alert({ message: (err as Error).message, variant: "error" });
       }
     }
   };
