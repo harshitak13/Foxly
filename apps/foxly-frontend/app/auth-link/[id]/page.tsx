@@ -52,10 +52,16 @@ export default function AuthLinkPage() {
         <>
           <h1 className="font-display text-3xl font-bold">Approve Foxly sign-in</h1>
           <p className="mt-3 text-on-surface-variant">
-            This uses an already registered passkey{accountEmail ? ` for ${accountEmail}` : ""}. The session will open on the browser that showed the QR code.
+            This uses an already registered passkey
+            {accountEmail ? ` for ${accountEmail}` : ""}.
+            The session will open on the browser that showed the QR code.
           </p>
-          <Button onClick={authenticate} disabled={busy}>{busy ? "Waiting for passkey..." : "Use this device's passkey"}</Button>
-          {error && <p className="mt-4 text-sm text-error">{error}</p>}
+          <Button onClick={authenticate} disabled={busy}>
+            {busy ? "Waiting for passkey..." : "Use this device's passkey"}
+          </Button>
+          {error && (
+            <p className="mt-4 text-sm text-error">{error}</p>
+          )}
         </>
       )}
     </AuthShell>

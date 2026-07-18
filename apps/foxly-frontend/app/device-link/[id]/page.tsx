@@ -91,21 +91,39 @@ export default function DeviceLinkPage() {
             <form onSubmit={sendCode} className="mt-6">
               <label className="text-sm font-semibold">
                 Account email
-                <TextInput required type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                <TextInput
+                  required
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
               </label>
-              <Button disabled={busy}>{busy ? "Sending code..." : "Send one-time code"}</Button>
+              <Button disabled={busy}>
+                {busy ? "Sending code..." : "Send one-time code"}
+              </Button>
             </form>
           ) : (
             <form onSubmit={register} className="mt-6 space-y-4">
               <label className="text-sm font-semibold">
                 One-time email code
-                <TextInput required inputMode="numeric" value={code} onChange={(e) => setCode(e.target.value)} />
+                <TextInput
+                  required
+                  inputMode="numeric"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                />
               </label>
               <label className="text-sm font-semibold">
                 Device name
-                <TextInput value={deviceLabel} onChange={(e) => setDeviceLabel(e.target.value)} placeholder="Rahul's iPhone" />
+                <TextInput
+                  value={deviceLabel}
+                  onChange={(e) => setDeviceLabel(e.target.value)}
+                  placeholder="Rahul's iPhone"
+                />
               </label>
-              <Button disabled={busy}>{busy ? "Registering..." : "Register passkey on this device"}</Button>
+              <Button disabled={busy}>
+                {busy ? "Registering..." : "Register passkey on this device"}
+              </Button>
             </form>
           )}
 
