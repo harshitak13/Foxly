@@ -46,7 +46,7 @@ export default function Approvals() {
   }
 
   return (
-    <div className="grid grid-cols-[1fr_280px] gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6">
       <div>
         {/* Page header */}
         <div className="mb-6">
@@ -103,7 +103,7 @@ export default function Approvals() {
                     <span className="text-xs text-on-surface-variant">2m ago</span>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4 mb-5 text-xs text-on-surface-variant">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5 text-xs text-on-surface-variant">
                     <div>
                       <p className="uppercase tracking-wider font-semibold mb-1">Requester</p>
                       <div className="flex items-center gap-1.5">

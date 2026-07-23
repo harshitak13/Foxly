@@ -16,6 +16,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const router = useRouter();
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [user, setUser] = useState<{ name: string; email: string; role: string } | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const dialog = useDialog();
@@ -52,25 +53,31 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <header className="sticky top-0 z-10 border-b border-outline-variant bg-white/90 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-7xl items-center gap-4 px-6 py-3">
+        <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 sm:px-6 py-3">
+          <button 
+            className="md:hidden text-2xl px-2 py-1 -ml-2 rounded-md hover:bg-surface-container transition-colors"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          >
+            ☰
+          </button>
           {/* Logo */}
-          <Link href="/dashboard" className="flex items-center gap-2 mr-2">
-            <div className="grid h-9 w-9 place-items-center rounded-lg bg-primary text-white text-lg font-bold">
+          <Link href="/dashboard" className="flex items-center gap-2 sm:mr-2">
+            <div className="hidden sm:grid h-9 w-9 place-items-center rounded-lg bg-primary text-white text-lg font-bold">
               🦊
             </div>
             <span className="font-display text-xl font-bold text-on-surface">Foxly</span>
           </Link>
 
           {/* Trust badge */}
-          <span className="flex items-center gap-1.5 rounded-full border border-outline-variant px-3 py-1 text-xs font-semibold text-on-surface-variant">
+          <span className="hidden lg:flex items-center gap-1.5 rounded-full border border-outline-variant px-3 py-1 text-xs font-semibold text-on-surface-variant">
             <span className="h-2 w-2 rounded-full bg-green-500 inline-block" />
             Trust Level: High
           </span>
 
           {/* Nav links */}
-          <nav className="flex items-center gap-1 ml-2">
+          <nav className="hidden md:flex items-center gap-1 ml-2">
             {NAV.map(({ href, label }) => {
               const active = pathname === href || (href === "/devices" && pathname.startsWith("/devices/"));
               return (
@@ -159,9 +166,37 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             )}
           </div>
         </div>
+
+        {/* Mobile Navigation */}
+        {mobileMenuOpen && (
+          <nav className="md:hidden border-t border-outline-variant bg-white px-4 py-2 flex flex-col gap-1 shadow-sm">
+            {NAV.map(({ href, label }) => {
+              const active = pathname === href || (href === "/devices" && pathname.startsWith("/devices/"));
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`block rounded-lg px-4 py-3 text-sm font-semibold ${
+                    active ? "bg-primary/10 text-primary" : "text-on-surface-variant hover:bg-surface-container"
+                  }`}
+                >
+                  {label}
+                </Link>
+              );
+            })}
+            <Link
+              href="/devices/new"
+              onClick={() => setMobileMenuOpen(false)}
+              className="mt-2 block rounded-lg bg-primary px-4 py-3 text-center text-sm font-semibold text-white"
+            >
+              + Add Device
+            </Link>
+          </nav>
+        )}
       </header>
 
-      <main className="mx-auto max-w-7xl px-6 py-8">{children}</main>
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 sm:px-6 py-6 sm:py-8">{children}</main>
     </div>
   );
 }

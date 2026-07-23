@@ -81,7 +81,7 @@ function BackupCodesModal({
         </div>
 
         {/* Codes grid */}
-        <div className="mb-6 grid grid-cols-2 gap-2">
+        <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 gap-2">
           {codes.map((code, i) => (
             <div
               key={i}

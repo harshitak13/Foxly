@@ -97,3 +97,61 @@ export async function sendDeviceLinkCodeEmail(to: string, code: string) {
   console.log(`👉 CODE: ${code}`);
   console.log("==================================================\n");
 }
+
+export async function sendEmailChangedNotificationEmail(to: string) {
+  const subject = "Your Foxly email address has been changed";
+  const text = `The email address associated with your Foxly account has been changed. If you did not make this change, please contact support immediately.`;
+  const html = `
+    <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #111827;">
+      <h1 style="font-size: 20px;">Email Address Changed</h1>
+      <p>The email address associated with your Foxly account has been changed.</p>
+      <p>If you did not make this change, please contact support immediately.</p>
+    </div>
+  `;
+  const input = { to, subject, text, html };
+
+  if (await sendWithResend(input)) return;
+  if (await sendWithSmtp(input)) return;
+
+  console.warn("⚠️ Email delivery is not configured. Falling back to console logging.");
+  console.log("\n==================================================");
+  console.log(`📧 EMAIL CHANGED NOTIFICATION FOR: ${to}`);
+  console.log("==================================================\n");
+}
+
+export async function sendBackupCodeUsedEmail(to: string, deviceName: string | null) {
+  const subject = "A backup code was used to sign in to Foxly";
+  
+  let text = "";
+  let html = "";
+  
+  if (deviceName) {
+    text = `A backup code was used by "${deviceName}" to sign into your Foxly account. If not you, please contact support.`;
+    html = `
+      <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #111827;">
+        <h1 style="font-size: 20px;">Backup Code Used</h1>
+        <p>A backup code was used by "${deviceName}" to sign into your Foxly account. If not you, please contact support.</p>
+      </div>
+    `;
+  } else {
+    text = `A backup code was just used to sign in to your Foxly account.\n\nThis backup code was used by an unrecognized device. If this was not you, please use your passkey to log in and remove the compromised device from your account settings.`;
+    html = `
+      <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #111827;">
+        <h1 style="font-size: 20px;">Backup Code Used</h1>
+        <p>A backup code was just used to sign in to your Foxly account.</p>
+        <p>This backup code was used by an unrecognized device. If this was not you, please use your passkey to log in and remove the compromised device from your account settings.</p>
+      </div>
+    `;
+  }
+
+  const input = { to, subject, text, html };
+
+  if (await sendWithResend(input)) return;
+  if (await sendWithSmtp(input)) return;
+
+  console.warn("⚠️ Email delivery is not configured. Falling back to console logging.");
+  console.log("\n==================================================");
+  console.log(`🛡️ BACKUP CODE USED NOTIFICATION FOR: ${to}`);
+  console.log(`Device Known: ${!!deviceName} ${deviceName ? `(${deviceName})` : ""}`);
+  console.log("==================================================\n");
+}

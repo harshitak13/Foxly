@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AuthShell } from "@/components/ui";
-import { api } from "@/lib/api";
+import { api, stableClientId } from "@/lib/api";
 
 declare global {
   interface Window {
@@ -64,7 +64,7 @@ export default function StepUp() {
     try {
       await api("/auth/recovery/verify-code", {
         method: "POST",
-        body: JSON.stringify({ email: data.email, code: code.trim().toUpperCase() }),
+        body: JSON.stringify({ email: data.email, code: code.trim().toUpperCase(), stableClientId: stableClientId() }),
       });
       // Complete recovery → get fresh backup codes
       const result = await api<{ codes: string[] }>("/auth/recovery/complete", { method: "POST" });

@@ -103,7 +103,7 @@ export default function Dashboard() {
       </div>
 
       {/* Stat cards */}
-      <div className="mb-8 grid grid-cols-4 gap-4">
+      <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { icon: "💻", label: "Active Devices", value: devices.length, badge: "LIVE", badgeColor: "bg-green-100 text-green-700" },
           { icon: "📋", label: "Pending Approval", value: approvals.length, badge: "ACTION", badgeColor: "bg-orange-100 text-orange-700" },
@@ -122,7 +122,7 @@ export default function Dashboard() {
       </div>
 
       {/* Bottom row */}
-      <div className="grid grid-cols-[1fr_320px] gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
         {/* Recent Activity */}
         <div>
           <div className="flex items-center justify-between mb-4">

@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 import { generateAuthenticationOptions, generateRegistrationOptions, verifyAuthenticationResponse, verifyRegistrationResponse } from "@simplewebauthn/server";
 import { isoBase64URL, isoUint8Array } from "@simplewebauthn/server/helpers";
 import { issueJwt, verifyJwt } from "./auth/jwt.js";
-import { sendDeviceLinkCodeEmail } from "./email.js";
+import { sendDeviceLinkCodeEmail, sendEmailChangedNotificationEmail, sendBackupCodeUsedEmail } from "./email.js";
 import { calculateRiskScore, hashFingerprint } from "./risk/index.js";
 import { store } from "./store.js";
 
@@ -421,6 +421,11 @@ app.post("/auth/recovery/verify-code", async (req, res) => {
     action: "auth.signin.recovery",
     metadata: { method: "backup-code" },
   });
+
+  const fingerprintHash = hashFingerprint(req.get("user-agent") ?? "", req.body.stableClientId);
+  const knownCred = store.credentialsForUser(user.id).find(c => c.fingerprintHash === fingerprintHash);
+  sendBackupCodeUsedEmail(user.email, knownCred ? knownCred.deviceLabel : null).catch(err => console.error("Failed to send backup code used email", err));
+
   const token = await issueJwt(
     {
       sub: user.id,
@@ -600,6 +605,11 @@ app.post("/auth/profile", async (req, res) => {
     
     // If changing email, require a fresh passkey assertion
     if (email.toLowerCase() !== user.email.toLowerCase()) {
+      const existingUser = store.findUserByEmail(email);
+      if (existingUser) {
+        return res.status(409).json({ error: "An account with this email already exists" });
+      }
+
       if (!passkeyAssertion) {
         return res.status(400).json({ error: "fresh passkey assertion required to change email" });
       }
@@ -625,6 +635,8 @@ app.post("/auth/profile", async (req, res) => {
       }
       store.updateCredentialCounter(credential.id, verification.authenticationInfo.newCounter);
       store.addAuditRow({ userId: user.id, action: "security.email_changed", metadata: { oldEmail: user.email, newEmail: email } });
+      
+      sendEmailChangedNotificationEmail(user.email).catch(err => console.error("Failed to send email changed notification", err));
     }
 
     store.updateProfile(user.id, name, email);

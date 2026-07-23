@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AuthShell, Button, TextInput } from "@/components/ui";
-import { api } from "@/lib/api";
+import { api, stableClientId } from "@/lib/api";
 
 declare global {
   interface Window {
@@ -29,7 +29,7 @@ export default function Recovery() {
       // Step 1: verify the used recovery code → limited-scope session cookie
       await api("/auth/recovery/verify-code", {
         method: "POST",
-        body: JSON.stringify({ email, code }),
+        body: JSON.stringify({ email, code, stableClientId: stableClientId() }),
       });
       // Step 2: complete recovery → full-scope JWT + fresh set of 10 recovery codes
       const result = await api<{ codes: string[] }>("/auth/recovery/complete", {
