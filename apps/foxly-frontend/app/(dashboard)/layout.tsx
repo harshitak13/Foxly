@@ -17,12 +17,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [user, setUser] = useState<{ name: string; email: string; role: string } | null>(null);
+  const [user, setUser] = useState<{ name: string; email: string } | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const dialog = useDialog();
 
   const fetchStatus = () => {
-    api<{ name: string; email: string; role: string }>("/auth/me")
+    api<{ name: string; email: string }>("/auth/me")
       .then((u) => setUser(u))
       .catch(() => {});
     api<{ notifications: any[] }>("/notifications")
@@ -140,9 +140,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <div className="px-3 py-2 border-b border-outline-variant mb-1">
                       <p className="text-sm font-bold text-on-surface truncate">{user.name}</p>
                       <p className="text-xs text-on-surface-variant truncate">{user.email}</p>
-                      <span className="mt-1 inline-block rounded bg-surface-container px-1.5 py-0.5 text-[10px] font-semibold text-on-surface-variant">
-                        {user.role}
-                      </span>
                     </div>
                   )}
                   <Link

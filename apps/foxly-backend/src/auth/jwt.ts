@@ -1,7 +1,7 @@
 import { SignJWT, jwtVerify } from "jose";
 import type { FoxlyJwtPayload } from "shared-types";
 const secret = new TextEncoder().encode(process.env.JWT_SECRET ?? "dev-only-change-me-foxly-secret");
-export async function issueJwt(payload: Omit<FoxlyJwtPayload, "iat" | "exp">, ttl = "2h") {
+export async function issueJwt(payload: Omit<FoxlyJwtPayload, "iat" | "exp">, ttl = "8h") {
   return new SignJWT(payload)
     .setProtectedHeader({ alg: "HS256", typ: "JWT" })
     .setIssuedAt()

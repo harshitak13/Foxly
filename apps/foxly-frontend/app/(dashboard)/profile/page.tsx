@@ -8,7 +8,6 @@ export default function Profile() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [currentEmail, setCurrentEmail] = useState("");
-  const [role, setRole] = useState("");
   const [createdAt, setCreatedAt] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -26,7 +25,6 @@ export default function Profile() {
         setName(user.name);
         setEmail(user.email);
         setCurrentEmail(user.email);
-        setRole(user.role);
         setCreatedAt(new Date(user.createdAt).toLocaleDateString("en-US", {
           month: "long",
           day: "numeric",
@@ -75,7 +73,6 @@ export default function Profile() {
       });
       setEmail(newEmail.trim());
       setCurrentEmail(newEmail.trim());
-      // Update local storage email since it is used in passkey setups
       sessionStorage.setItem("foxly_email", newEmail.trim());
       setEmailModalOpen(false);
       setPasskeyAssertion(null);
@@ -179,9 +176,6 @@ export default function Profile() {
             <h2 className="text-lg font-bold text-on-surface">{name || "Foxly User"}</h2>
             <p className="text-xs text-on-surface-variant">{email}</p>
             <div className="flex gap-2 mt-1.5">
-              <span className="rounded bg-surface-container px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
-                Role: {role}
-              </span>
               <span className="rounded bg-surface-container px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
                 Joined: {createdAt}
               </span>

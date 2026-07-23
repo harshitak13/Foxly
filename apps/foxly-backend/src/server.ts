@@ -67,7 +67,7 @@ function setSession(req: express.Request, res: express.Response, token: string) 
     httpOnly: true,
     sameSite: isCrossSite ? "none" : "lax",
     secure: secure || isCrossSite,
-    maxAge: 2 * 60 * 60 * 1000
+    maxAge: 8 * 60 * 60 * 1000 // 8 hours session timeout limit
   });
 }
 app.get("/health", (_req, res) => res.json({ ok: true, service: "foxly-backend" }));
@@ -76,6 +76,12 @@ app.post("/auth/signup/init", async (req, res) => {
   if (!name || !email) {
     return res.status(400).json({ error: "name and email are required" });
   }
+
+  const existingUser = store.findUserByEmail(email);
+  if (existingUser) {
+    return res.status(409).json({ error: "Email is already registered" });
+  }
+
   const user = await store.upsertPendingUser(name, email);
   console.log(`[mock-email] verification sent to ${user.email}`);
   res.json({ userId: user.id, email: user.email, verified: user.emailVerified });
@@ -179,7 +185,7 @@ app.post("/auth/signin/verify", async (req, res) => {
   }
   const credential = store.findCredentialByExternalId(req.body.assertion?.id);
   if (!credential) {
-    return res.status(404).json({ error: "credential not found" });
+    return res.status(401).json({ error: "This device passkey has been revoked or removed from the database and cannot be used to sign in." });
   }
   const verification = await verifyAuthenticationResponse({
     response: req.body.assertion,
@@ -386,7 +392,7 @@ app.post("/api/auth-link/:id/complete", async (req, res) => {
   if (!user) return res.status(404).json({ error: "user not found" });
   if (!session.challenge) return res.status(400).json({ error: "authentication challenge expired" });
   const credential = store.findCredentialByExternalId(req.body.assertion?.id);
-  if (!credential || credential.userId !== user.id) return res.status(404).json({ error: "credential not found" });
+  if (!credential || credential.userId !== user.id) return res.status(401).json({ error: "This device passkey has been revoked or removed from the database and cannot be used to sign in." });
   const verification = await verifyAuthenticationResponse({
     response: req.body.assertion,
     expectedChallenge: session.challenge,
@@ -424,7 +430,21 @@ app.post("/auth/recovery/verify-code", async (req, res) => {
 
   const fingerprintHash = hashFingerprint(req.get("user-agent") ?? "", req.body.stableClientId);
   const knownCred = store.credentialsForUser(user.id).find(c => c.fingerprintHash === fingerprintHash);
-  sendBackupCodeUsedEmail(user.email, knownCred ? knownCred.deviceLabel : null).catch(err => console.error("Failed to send backup code used email", err));
+  
+  const risk = calculateRiskScore({
+    userId: user.id,
+    deviceKnown: Boolean(knownCred),
+    ip: req.ip ?? "",
+    userAgent: req.get("user-agent") ?? "",
+    stableClientId: req.body.stableClientId,
+    failedAttempts: store.failedAttemptCount(user.email),
+    loginHour: new Date().getHours(),
+    usualLoginHours: user.usualLoginHours ?? [],
+  });
+
+  if (risk.score > 20) {
+    sendBackupCodeUsedEmail(user.email, knownCred ? knownCred.deviceLabel : null).catch(err => console.error("Failed to send backup code used email", err));
+  }
 
   const token = await issueJwt(
     {
@@ -462,13 +482,37 @@ app.get("/devices", async (req, res) => {
   if (!user) {
     return res.status(401).json({ error: "unauthorized" });
   }
+  const allCreds = store.credentialsForUser(user.id);
+  const clientHeader = (req.get("x-stable-client-id") as string) ?? (req.body?.stableClientId as string) ?? (req.query?.stableClientId as string);
+  const fingerprintHash = hashFingerprint(req.get("user-agent") ?? "", clientHeader);
+
+  let currentCred = allCreds.find((c) => c.fingerprintHash === fingerprintHash);
+  if (!currentCred) {
+    currentCred = allCreds.find((c) => c.isPrimary) ?? allCreds[0];
+  }
+
+  const primaryCredId = allCreds.find((c) => c.isPrimary)?.id ?? allCreds[0]?.id;
+  const isCurrentDevicePrimary = currentCred ? (currentCred.isPrimary || currentCred.id === primaryCredId) : true;
+  const currentDeviceCanRevoke = currentCred ? (currentCred.canRevoke || isCurrentDevicePrimary) : true;
+
   res.json({
-    devices: store.credentialsForUser(user.id).map((c) => ({
-      id: c.id,
-      label: c.deviceLabel,
-      lastUsedAt: c.lastUsedAt,
-      createdAt: c.createdAt,
-    })),
+    currentDeviceId: currentCred?.id ?? null,
+    isCurrentDevicePrimary,
+    currentDeviceCanRevoke,
+    devices: allCreds.map((c) => {
+      const isPrimary = c.isPrimary || c.id === primaryCredId;
+      const canRevoke = isPrimary ? true : (c.canRevoke ?? false);
+      const isCurrent = c.id === currentCred?.id;
+      return {
+        id: c.id,
+        label: c.deviceLabel,
+        isPrimary,
+        canRevoke,
+        isCurrent,
+        lastUsedAt: c.lastUsedAt,
+        createdAt: c.createdAt,
+      };
+    }),
   });
 });
 
@@ -477,7 +521,101 @@ app.delete("/devices/:id", async (req, res) => {
   if (!user) {
     return res.status(401).json({ error: "unauthorized" });
   }
+  const allCreds = store.credentialsForUser(user.id);
+  const clientHeader = (req.get("x-stable-client-id") as string) ?? (req.body?.stableClientId as string) ?? (req.query?.stableClientId as string);
+  const fingerprintHash = hashFingerprint(req.get("user-agent") ?? "", clientHeader);
+
+  let currentCred = allCreds.find((c) => c.fingerprintHash === fingerprintHash);
+  if (!currentCred) {
+    currentCred = allCreds.find((c) => c.isPrimary) ?? allCreds[0];
+  }
+
+  if (currentCred && req.params.id === currentCred.id) {
+    return res.status(400).json({ error: "A device cannot revoke itself. Use another authorized device to revoke this device, or sign out if you wish to exit." });
+  }
+
+  const primaryCredId = allCreds.find((c) => c.isPrimary)?.id ?? allCreds[0]?.id;
+  const isPrimary = currentCred ? (currentCred.isPrimary || currentCred.id === primaryCredId) : true;
+  const canRevoke = currentCred ? (currentCred.canRevoke || isPrimary) : true;
+
+  if (!canRevoke) {
+    return res.status(403).json({ error: "This device does not have access to revoke other devices. Only the primary device or devices with granted revoke access can revoke devices." });
+  }
+
+  const targetCred = allCreds.find((c) => c.id === req.params.id);
+  const remainingBackupDevices = allCreds.filter((c) => !c.isPrimary && c.id !== primaryCredId && c.id !== req.params.id);
+  if (targetCred && targetCred.canRevoke && remainingBackupDevices.length > 0) {
+    const otherBackupWithRevoke = remainingBackupDevices.filter((c) => c.canRevoke);
+    if (otherBackupWithRevoke.length === 0) {
+      return res.status(400).json({ error: "At least one remaining device other than the primary device must have revoke access enabled. Please grant revoke access to another device before revoking this device." });
+    }
+  }
+
   res.json({ revoked: store.revokeCredential(user.id, req.params.id) });
+});
+
+app.post("/devices/:id/grant-revoke", async (req, res) => {
+  const user = await currentUser(req);
+  if (!user) {
+    return res.status(401).json({ error: "unauthorized" });
+  }
+  const allCreds = store.credentialsForUser(user.id);
+  const clientHeader = (req.get("x-stable-client-id") as string) ?? (req.body?.stableClientId as string) ?? (req.query?.stableClientId as string);
+  const fingerprintHash = hashFingerprint(req.get("user-agent") ?? "", clientHeader);
+
+  let currentCred = allCreds.find((c) => c.fingerprintHash === fingerprintHash);
+  if (!currentCred) {
+    currentCred = allCreds.find((c) => c.isPrimary) ?? allCreds[0];
+  }
+
+  const primaryCredId = allCreds.find((c) => c.isPrimary)?.id ?? allCreds[0]?.id;
+  const isPrimary = currentCred ? (currentCred.isPrimary || currentCred.id === primaryCredId) : true;
+
+  if (!isPrimary) {
+    return res.status(403).json({ error: "Only the primary device can grant revoke access to other devices." });
+  }
+
+  const ok = store.grantRevokeAccess(user.id, req.params.id);
+  if (!ok) {
+    return res.status(404).json({ error: "Device not found" });
+  }
+  res.json({ ok: true });
+});
+
+app.post("/devices/:id/revoke-revoke", async (req, res) => {
+  const user = await currentUser(req);
+  if (!user) {
+    return res.status(401).json({ error: "unauthorized" });
+  }
+  const allCreds = store.credentialsForUser(user.id);
+  const clientHeader = (req.get("x-stable-client-id") as string) ?? (req.body?.stableClientId as string) ?? (req.query?.stableClientId as string);
+  const fingerprintHash = hashFingerprint(req.get("user-agent") ?? "", clientHeader);
+
+  let currentCred = allCreds.find((c) => c.fingerprintHash === fingerprintHash);
+  if (!currentCred) {
+    currentCred = allCreds.find((c) => c.isPrimary) ?? allCreds[0];
+  }
+
+  const primaryCredId = allCreds.find((c) => c.isPrimary)?.id ?? allCreds[0]?.id;
+  const isPrimary = currentCred ? (currentCred.isPrimary || currentCred.id === primaryCredId) : true;
+
+  if (!isPrimary) {
+    return res.status(403).json({ error: "Only the primary device can manage revoke permissions." });
+  }
+
+  const targetCred = allCreds.find((c) => c.id === req.params.id);
+  if (targetCred && targetCred.canRevoke) {
+    const otherBackupWithRevoke = allCreds.filter((c) => !c.isPrimary && c.id !== primaryCredId && c.id !== req.params.id && c.canRevoke);
+    if (otherBackupWithRevoke.length === 0) {
+      return res.status(400).json({ error: "At least one device other than the primary device must have revoke access enabled." });
+    }
+  }
+
+  const ok = store.revokeRevokeAccess(user.id, req.params.id);
+  if (!ok) {
+    return res.status(404).json({ error: "Device not found" });
+  }
+  res.json({ ok: true });
 });
 
 app.post("/approvals", async (req, res) => {
@@ -572,7 +710,7 @@ app.get("/auth/me", async (req, res) => {
   try {
     const user = await currentUser(req);
     if (!user) return res.status(401).json({ error: "unauthorized" });
-    res.json({ id: user.id, name: user.name, email: user.email, role: user.role ?? "Admin", createdAt: user.createdAt ?? new Date() });
+    res.json({ id: user.id, name: user.name, email: user.email, createdAt: user.createdAt ?? new Date() });
   } catch (err) {
     console.error("Error in /auth/me:", err);
     res.status(500).json({ error: (err as Error).message });
@@ -616,7 +754,7 @@ app.post("/auth/profile", async (req, res) => {
       const expectedChallenge = store.takeChallenge(`auth:${user.id}`);
       if (!expectedChallenge) return res.status(400).json({ error: "authentication challenge expired" });
       const credential = store.findCredentialByExternalId(passkeyAssertion.id);
-      if (!credential) return res.status(404).json({ error: "credential not found" });
+      if (!credential) return res.status(401).json({ error: "This device passkey has been revoked or removed from the database and cannot be used to sign in." });
       const verification = await verifyAuthenticationResponse({
         response: passkeyAssertion,
         expectedChallenge,

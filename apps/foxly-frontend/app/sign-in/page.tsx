@@ -13,6 +13,8 @@ function friendlyError(msg: string): string {
     return "Passkey prompt was dismissed or timed out. Please try again.";
   if (msg.includes("user not found"))
     return "No account found for this email. Please sign up first.";
+  if (msg.toLowerCase().includes("revoked") || msg.toLowerCase().includes("removed") || msg.toLowerCase().includes("not found"))
+    return "This device or passkey has been revoked and removed from the database. It cannot be used to sign in.";
   return msg;
 }
 

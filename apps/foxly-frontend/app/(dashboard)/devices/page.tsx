@@ -21,17 +21,86 @@ function formatDate(iso: string | null) {
 
 export default function Devices() {
   const router = useRouter();
-  const { devices, loading, refresh } = useDevices();
+  const { devices, loading, isCurrentDevicePrimary, currentDeviceCanRevoke, refresh } = useDevices();
   const dialog = useDialog();
 
   const handleRevoke = async (id: string) => {
-    if (await dialog.confirm({ title: "Revoke device", message: "Are you sure you want to revoke this device?", confirmText: "Revoke", variant: "error" })) {
+    const target = devices.find((d) => d.id === id);
+    if (target?.isCurrent) {
+      dialog.alert({
+        title: "Cannot revoke current device",
+        message: "A device cannot revoke itself. Please use another authorized device to revoke this device, or sign out.",
+        variant: "warning",
+      });
+      return;
+    }
+
+    const remainingBackupDevices = devices.filter((d) => !d.isPrimary && d.id !== id);
+    if (target?.canRevoke && remainingBackupDevices.length > 0) {
+      const otherBackupWithRevoke = remainingBackupDevices.filter((d) => d.canRevoke);
+      if (otherBackupWithRevoke.length === 0) {
+        await dialog.alert({
+          title: "Cannot revoke device",
+          message: "At least one device other than the primary device must have revoke access enabled. Please grant revoke access to another device before revoking this device.",
+          variant: "warning",
+        });
+        return;
+      }
+    }
+
+    if (await dialog.confirm({
+      title: "Revoke device & passkey",
+      message: "Are you sure you want to revoke this device? The device and its passkey will be permanently removed from the database and cannot be used to sign in again.",
+      confirmText: "Revoke",
+      variant: "error"
+    })) {
       try {
         await api(`/devices/${id}`, { method: "DELETE" });
         refresh();
       } catch (err) {
         dialog.alert({ message: (err as Error).message, variant: "error" });
       }
+    }
+  };
+
+  const handleGrantRevoke = async (id: string, label: string) => {
+    try {
+      await api(`/devices/${id}/grant-revoke`, { method: "POST" });
+      await refresh();
+      dialog.alert({
+        title: "Revoke access granted",
+        message: `Revoke access has been granted to device "${label}". This device can now revoke other devices.`,
+        variant: "info",
+      });
+    } catch (err) {
+      dialog.alert({ message: (err as Error).message, variant: "error" });
+    }
+  };
+
+  const handleRemoveRevoke = async (id: string, label: string) => {
+    const target = devices.find((d) => d.id === id);
+    if (target?.canRevoke) {
+      const otherBackupWithRevoke = devices.filter((d) => !d.isPrimary && d.canRevoke && d.id !== id);
+      if (otherBackupWithRevoke.length === 0) {
+        await dialog.alert({
+          title: "Cannot remove revoke access",
+          message: "At least one device other than the primary device must have revoke access enabled.",
+          variant: "warning",
+        });
+        return;
+      }
+    }
+
+    try {
+      await api(`/devices/${id}/revoke-revoke`, { method: "POST" });
+      await refresh();
+      dialog.alert({
+        title: "Revoke access removed",
+        message: `Revoke access has been removed from device "${label}".`,
+        variant: "info",
+      });
+    } catch (err) {
+      dialog.alert({ message: (err as Error).message, variant: "error" });
     }
   };
 
@@ -85,7 +154,7 @@ export default function Devices() {
                 <td colSpan={3} className="px-6 py-8 text-center text-on-surface-variant">No devices registered.</td>
               </tr>
             ) : (
-              devices.map((d, index) => {
+              devices.map((d) => {
                 const { icon, hint } = deviceIcon(d.label);
                 return (
                   <tr key={d.id} className="hover:bg-surface-container-low transition-colors">
@@ -93,11 +162,21 @@ export default function Devices() {
                       <div className="flex items-center gap-3">
                         <div className="text-2xl">{icon}</div>
                         <div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-semibold text-on-surface">{d.label}</span>
-                            {index === 0 && (
+                            {d.isCurrent && (
                               <span className="rounded-full bg-green-100 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-green-700">
                                 Current
+                              </span>
+                            )}
+                            {d.isPrimary && (
+                              <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-purple-700">
+                                Primary Device
+                              </span>
+                            )}
+                            {!d.isPrimary && d.canRevoke && (
+                              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-amber-800">
+                                Revoke Access Granted
                               </span>
                             )}
                           </div>
@@ -110,16 +189,45 @@ export default function Devices() {
                       <p className="text-xs text-on-surface-variant">Added {formatDate(d.createdAt)}</p>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      {index === 0 ? (
-                        <span className="text-xs font-semibold text-on-surface-variant">Active</span>
-                      ) : (
-                        <button
-                          onClick={() => handleRevoke(d.id)}
-                          className="text-sm font-semibold text-red-600 hover:text-red-800 transition-colors"
-                        >
-                          Revoke
-                        </button>
-                      )}
+                      <div className="flex items-center justify-end gap-3">
+                        {/* "Give revoke access" button — ONLY visible to Primary device beside registered NEW devices */}
+                        {isCurrentDevicePrimary && !d.isPrimary && (
+                          !d.canRevoke ? (
+                            <button
+                              onClick={() => handleGrantRevoke(d.id, d.label)}
+                              className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary hover:text-white transition-colors"
+                            >
+                              🛡️ Give revoke access
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleRemoveRevoke(d.id, d.label)}
+                              className="rounded-lg border border-outline-variant bg-surface-container-low px-3 py-1.5 text-xs font-semibold text-on-surface-variant hover:bg-red-50 hover:text-red-700 transition-colors"
+                            >
+                              ✓ Revoke access granted (Remove)
+                            </button>
+                          )
+                        )}
+
+                        {/* Revoke button */}
+                        {d.isCurrent ? (
+                          <span className="text-xs font-semibold text-on-surface-variant">Active</span>
+                        ) : currentDeviceCanRevoke ? (
+                          <button
+                            onClick={() => handleRevoke(d.id)}
+                            className="text-sm font-semibold text-red-600 hover:text-red-800 transition-colors"
+                          >
+                            Revoke
+                          </button>
+                        ) : (
+                          <span
+                            title="Only primary device or authorized devices can revoke other devices"
+                            className="text-xs font-semibold text-on-surface-variant opacity-60 cursor-not-allowed"
+                          >
+                            No Revoke Permission
+                          </span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );

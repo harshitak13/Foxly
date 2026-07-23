@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 dotenv.config({ path: fileURLToPath(new URL("../.env.local", import.meta.url)), override: true });
 dotenv.config({ path: fileURLToPath(new URL("../.env", import.meta.url)), override: true });
 export interface User { id: string; name: string; email: string; emailVerified: boolean; usualLoginHours: number[]; sessionVersion?: number; role?: string; createdAt?: Date; }
-export interface Credential { id: string; userId: string; credentialId: string; publicKey: string; counter: number; transports: string[]; deviceLabel: string; fingerprintHash?: string; lastUsedAt?: Date; createdAt: Date; revokedAt?: Date; }
+export interface Credential { id: string; userId: string; credentialId: string; publicKey: string; counter: number; transports: string[]; deviceLabel: string; fingerprintHash?: string; isPrimary?: boolean; canRevoke?: boolean; lastUsedAt?: Date; createdAt: Date; revokedAt?: Date; }
 export type DeviceLinkStatus = "pending" | "scanned" | "completed" | "expired";
 export interface DeviceLinkSession { id: string; userId: string; status: DeviceLinkStatus; createdAt: Date; expiresAt: Date; challenge?: string; emailCodeHash?: string; emailCodeExpiresAt?: Date; completedCredentialId?: string; }
 export interface AuthLinkSession { id: string; userId: string; status: DeviceLinkStatus; createdAt: Date; expiresAt: Date; challenge?: string; token?: string; completedCredentialId?: string; }
@@ -91,11 +91,15 @@ async function initDb() {
           transports text[] NOT NULL DEFAULT '{}',
           device_label text NOT NULL DEFAULT 'Passkey device',
           fingerprint_hash text,
+          is_primary boolean NOT NULL DEFAULT false,
+          can_revoke boolean NOT NULL DEFAULT false,
           last_used_at timestamptz,
           created_at timestamptz NOT NULL DEFAULT now(),
           revoked_at timestamptz
         );
       `);
+      await client.query(`ALTER TABLE credentials ADD COLUMN IF NOT EXISTS is_primary boolean DEFAULT false;`);
+      await client.query(`ALTER TABLE credentials ADD COLUMN IF NOT EXISTS can_revoke boolean DEFAULT false;`);
 
       // Create backup_codes
       await client.query(`
@@ -193,7 +197,10 @@ async function initDb() {
         credentials.set(r.id, {
           id: r.id, userId: r.user_id, credentialId: r.credential_id, publicKey: r.public_key,
           counter: Number(r.counter), transports: r.transports, deviceLabel: r.device_label,
-          fingerprintHash: r.fingerprint_hash, lastUsedAt: r.last_used_at ? new Date(r.last_used_at) : undefined,
+          fingerprintHash: r.fingerprint_hash,
+          isPrimary: r.is_primary ?? false,
+          canRevoke: r.can_revoke ?? false,
+          lastUsedAt: r.last_used_at ? new Date(r.last_used_at) : undefined,
           createdAt: new Date(r.created_at), revokedAt: r.revoked_at ? new Date(r.revoked_at) : undefined
         });
       }
@@ -398,17 +405,28 @@ export const store = {
     return value;
   },
   addCredential(input: Omit<Credential, "id" | "createdAt">) {
-    const credential = { ...input, id: randomUUID(), createdAt: new Date() };
+    const existing = [...credentials.values()].filter((c) => c.userId === input.userId && !c.revokedAt);
+    const isFirst = existing.length === 0;
+    const isPrimary = input.isPrimary ?? isFirst;
+    const canRevoke = input.canRevoke ?? (isPrimary ? true : false);
+
+    const credential: Credential = {
+      ...input,
+      id: randomUUID(),
+      isPrimary,
+      canRevoke,
+      createdAt: new Date()
+    };
     credentials.set(credential.id, credential);
     notifications.push(`New device added for ${credential.userId}`);
 
     runQuery(
-      `INSERT INTO credentials (id, user_id, credential_id, public_key, counter, transports, device_label, fingerprint_hash, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-      [credential.id, credential.userId, credential.credentialId, credential.publicKey, credential.counter, credential.transports, credential.deviceLabel, credential.fingerprintHash, credential.createdAt]
+      `INSERT INTO credentials (id, user_id, credential_id, public_key, counter, transports, device_label, fingerprint_hash, is_primary, can_revoke, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+      [credential.id, credential.userId, credential.credentialId, credential.publicKey, credential.counter, credential.transports, credential.deviceLabel, credential.fingerprintHash, credential.isPrimary, credential.canRevoke, credential.createdAt]
     );
 
-    addAuditRow({ userId: credential.userId, action: "device.registered", metadata: { deviceLabel: credential.deviceLabel, credentialId: credential.credentialId } });
+    addAuditRow({ userId: credential.userId, action: "device.registered", metadata: { deviceLabel: credential.deviceLabel, credentialId: credential.credentialId, isPrimary, canRevoke } });
     this.addNotification(credential.userId, `New device paired: ${credential.deviceLabel}`);
     return credential;
   },
@@ -449,16 +467,37 @@ export const store = {
   revokeCredential(userId: string, id: string) {
     const c = credentials.get(id);
     if (!c || c.userId !== userId) return false;
-    c.revokedAt = new Date();
+    
+    // Remove from in-memory credentials map
+    credentials.delete(id);
     notifications.push(`Device revoked for ${userId}`);
 
+    // Remove permanently from PostgreSQL database
     runQuery(
-      `UPDATE credentials SET revoked_at = $1 WHERE id = $2`,
-      [c.revokedAt, id]
+      `DELETE FROM credentials WHERE id = $1 AND user_id = $2`,
+      [id, userId]
     );
 
     addAuditRow({ userId, action: "device.revoked", metadata: { deviceLabel: c.deviceLabel, credentialId: c.credentialId } });
     this.addNotification(userId, `Device revoked: ${c.deviceLabel}`);
+    return true;
+  },
+  grantRevokeAccess(userId: string, id: string) {
+    const c = credentials.get(id);
+    if (!c || c.userId !== userId) return false;
+    c.canRevoke = true;
+    runQuery(`UPDATE credentials SET can_revoke = true WHERE id = $1 AND user_id = $2`, [id, userId]);
+    addAuditRow({ userId, action: "device.revoke_access_granted", metadata: { deviceLabel: c.deviceLabel, credentialId: c.credentialId } });
+    this.addNotification(userId, `Granted revoke access to device: ${c.deviceLabel}`);
+    return true;
+  },
+  revokeRevokeAccess(userId: string, id: string) {
+    const c = credentials.get(id);
+    if (!c || c.userId !== userId || c.isPrimary) return false;
+    c.canRevoke = false;
+    runQuery(`UPDATE credentials SET can_revoke = false WHERE id = $1 AND user_id = $2`, [id, userId]);
+    addAuditRow({ userId, action: "device.revoke_access_removed", metadata: { deviceLabel: c.deviceLabel, credentialId: c.credentialId } });
+    this.addNotification(userId, `Removed revoke access from device: ${c.deviceLabel}`);
     return true;
   },
   async generateBackupCodes(userId: string) {
