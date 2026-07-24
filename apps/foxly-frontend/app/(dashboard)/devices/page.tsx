@@ -114,18 +114,6 @@ export default function Devices() {
             Monitor and manage access from your trusted hardware.
           </p>
         </div>
-        <button className="flex items-center gap-1 text-sm font-semibold text-on-surface-variant hover:text-on-surface">
-          <span>❓</span> Help Center
-        </button>
-      </div>
-
-      {/* Filter bar */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex gap-2">
-          <button className="rounded-full border border-outline bg-surface-container-low px-4 py-1.5 text-sm font-semibold text-on-surface">
-            All Devices
-          </button>
-        </div>
         <span className="text-sm text-on-surface-variant">{devices.length} device{devices.length !== 1 ? "s" : ""} total</span>
       </div>
 

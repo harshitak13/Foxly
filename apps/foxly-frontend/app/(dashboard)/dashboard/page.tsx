@@ -38,7 +38,7 @@ export default function Dashboard() {
   const router = useRouter();
   const { devices } = useDevices();
   const { activity, loading: activityLoading } = useActivity();
-  const [approvals, setApprovals] = useState<any[]>([]);
+  const [stats, setStats] = useState<{ backupCodesUnused: number; recentRiskFlags: number } | null>(null);
 
   // Real last sign-in: most recent auth.signin.* event from the activity feed
   const lastSignIn = activity.find(
@@ -46,8 +46,8 @@ export default function Dashboard() {
   ) ?? null;
 
   useEffect(() => {
-    api<any>("/approvals?status=pending")
-      .then((d) => setApprovals(Array.isArray(d.approvals) ? d.approvals : []))
+    api<{ backupCodesUnused: number; recentRiskFlags: number }>("/auth/stats")
+      .then((data) => setStats(data))
       .catch(() => {});
   }, []);
 
@@ -103,12 +103,11 @@ export default function Dashboard() {
       </div>
 
       {/* Stat cards */}
-      <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="mb-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
           { icon: "💻", label: "Active Devices", value: devices.length, badge: "LIVE", badgeColor: "bg-green-100 text-green-700" },
-          { icon: "📋", label: "Pending Approval", value: approvals.length, badge: "ACTION", badgeColor: "bg-orange-100 text-orange-700" },
-          { icon: "🔑", label: "Backup Codes Unused", value: 3, badge: "RESERVE", badgeColor: "bg-surface-container text-on-surface-variant" },
-          { icon: "🚩", label: "Recent Risk Flags", value: 0, badge: "CLEAN", badgeColor: "bg-green-100 text-green-700" },
+          { icon: "🔑", label: "Backup Codes Unused", value: stats !== null ? stats.backupCodesUnused : "...", badge: "RESERVE", badgeColor: "bg-surface-container text-on-surface-variant" },
+          { icon: "🚩", label: "Recent Risk Flags", value: stats !== null ? stats.recentRiskFlags : "...", badge: stats !== null && stats.recentRiskFlags > 0 ? "WARNING" : "CLEAN", badgeColor: stats !== null && stats.recentRiskFlags > 0 ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700" },
         ].map(({ icon, label, value, badge, badgeColor }) => (
           <div key={label} className="rounded-xl border border-outline-variant bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between mb-3">

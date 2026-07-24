@@ -788,6 +788,9 @@ export const store = {
   addAuditRow(row: Omit<AuditRow, "id" | "createdAt">) {
     addAuditRow(row);
   },
+  backupCodesUnusedCount(userId: string) {
+    return [...backupCodes.values()].filter((c) => c.userId === userId && !c.used).length;
+  },
 };
 
 function cryptoCode() {

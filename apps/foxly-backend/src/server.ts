@@ -717,6 +717,25 @@ app.get("/auth/me", async (req, res) => {
   }
 });
 
+app.get("/auth/stats", async (req, res) => {
+  try {
+    const user = await currentUser(req);
+    if (!user) return res.status(401).json({ error: "unauthorized" });
+    const backupCodesUnused = store.backupCodesUnusedCount(user.id);
+    const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const recentRiskFlags = store.auditRows().filter(
+      (r) =>
+        r.userId === user.id &&
+        r.action === "auth.signin.recovery" &&
+        new Date(r.createdAt).getTime() > thirtyDaysAgo
+    ).length;
+    res.json({ backupCodesUnused, recentRiskFlags });
+  } catch (err) {
+    console.error("Error in /auth/stats:", err);
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
 app.post("/auth/profile/options", async (req, res) => {
   const user = await currentUser(req);
   if (!user) return res.status(401).json({ error: "unauthorized" });

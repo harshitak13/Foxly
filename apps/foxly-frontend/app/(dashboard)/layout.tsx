@@ -7,7 +7,6 @@ import { useDialog } from "@/components/dialog-provider";
 const NAV = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/security", label: "Security" },
-  { href: "/approvals", label: "Approvals" },
   { href: "/devices", label: "Devices" },
   { href: "/logs", label: "Logs" },
 ];

@@ -4,13 +4,9 @@ import { api } from "@/lib/api";
 import { useDialog } from "@/components/dialog-provider";
 import type { Approval } from "shared-types";
 
-const RECENT_VERIFICATIONS = [
-  { name: "Sarah K.", action: "Update Firewall Rules", time: "1h ago", status: "Approved" },
-  { name: "Marcus T.", action: "Database Schema Change", time: "3h ago", status: "Approved" },
-];
 
 export default function Approvals() {
-  const [tab, setTab] = useState<"pending" | "history">("pending");
+  const [tab, setTab] = useState<"pending">("pending");
   const [pending, setPending] = useState<Approval[]>([]);
   const [loading, setLoading] = useState(true);
   const dialog = useDialog();
@@ -60,7 +56,7 @@ export default function Approvals() {
 
         {/* Tabs */}
         <div className="flex gap-0 border-b border-outline-variant mb-6">
-          {(["pending", "history"] as const).map((t) => (
+          {(["pending"] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -150,9 +146,6 @@ export default function Approvals() {
                     >
                       ⊘ Reject
                     </button>
-                    <button className="text-sm font-semibold text-on-surface-variant hover:text-on-surface transition-colors">
-                      View Manifest
-                    </button>
                   </div>
                 </div>
               ))
@@ -160,48 +153,7 @@ export default function Approvals() {
           </div>
         )}
 
-        {tab === "history" && (
-          <p className="text-on-surface-variant">No history available.</p>
-        )}
 
-        {/* Recent Verifications */}
-        <div className="mt-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-on-surface">Recent Verifications</h2>
-            <button className="text-sm font-semibold text-primary hover:underline">View All History →</button>
-          </div>
-          <div className="rounded-xl border border-outline-variant bg-white shadow-sm overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-outline-variant bg-surface-container-low">
-                  <th className="px-5 py-3 text-left font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Requester</th>
-                  <th className="px-5 py-3 text-left font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Action</th>
-                  <th className="px-5 py-3 text-left font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Time</th>
-                  <th className="px-5 py-3 text-left font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-outline-variant">
-                {RECENT_VERIFICATIONS.map((v) => (
-                  <tr key={v.name + v.action} className="hover:bg-surface-container-low">
-                    <td className="px-5 py-3">
-                      <div className="flex items-center gap-2">
-                        <div className="h-7 w-7 rounded-full bg-surface-container grid place-items-center text-sm">👤</div>
-                        <span className="font-semibold text-on-surface">{v.name}</span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-3 text-on-surface">{v.action}</td>
-                    <td className="px-5 py-3 text-on-surface-variant">{v.time}</td>
-                    <td className="px-5 py-3">
-                      <span className="flex items-center gap-1.5 text-green-700 font-semibold">
-                        ✅ {v.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
       </div>
 
       {/* Sidebar */}
