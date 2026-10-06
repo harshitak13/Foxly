@@ -2,7 +2,8 @@ import bcrypt from "bcryptjs";
 import { randomUUID, webcrypto } from "node:crypto";
 import type { Approval } from "shared-types";
 import pg from "pg";
-import Redis from "ioredis";
+import RedisModule from "ioredis";
+const Redis = (RedisModule as any).default || RedisModule;
 import dotenv from "dotenv";
 import { fileURLToPath } from "node:url";
 
@@ -393,14 +394,14 @@ export const store = {
   saveChallenge(key: string, challenge: string) {
     challenges.set(key, challenge);
     if (redis) {
-      redis.setex(key, 300, challenge).catch((err) => console.error("Redis setex error:", err));
+      redis.setex(key, 300, challenge).catch((err: any) => console.error("Redis setex error:", err));
     }
   },
   takeChallenge(key: string) {
     const value = challenges.get(key);
     challenges.delete(key);
     if (redis) {
-      redis.del(key).catch((err) => console.error("Redis del error:", err));
+      redis.del(key).catch((err: any) => console.error("Redis del error:", err));
     }
     return value;
   },
@@ -690,7 +691,7 @@ export const store = {
     if (success) {
       failedAttempts.delete(key);
       if (redis) {
-        redis.del(`failed:${key}`).catch((err) => console.error("Redis del error:", err));
+        redis.del(`failed:${key}`).catch((err: any) => console.error("Redis del error:", err));
       }
       return;
     }
@@ -698,7 +699,7 @@ export const store = {
     const count = (row?.count ?? 0) + 1;
     failedAttempts.set(key, { count, expiresAt: Date.now() + 15 * 60_000 });
     if (redis) {
-      redis.setex(`failed:${key}`, 900, String(count)).catch((err) => console.error("Redis setex error:", err));
+      redis.setex(`failed:${key}`, 900, String(count)).catch((err: any) => console.error("Redis setex error:", err));
     }
   },
   createApproval(userId: string, title: string, description: string, requiredApprovals = 1) {

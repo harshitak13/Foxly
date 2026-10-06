@@ -8,6 +8,7 @@
     "dev:foxly:frontend:https": "npm run dev:https -w apps/foxly-frontend",
     "dev:foxly:backend": "npm run dev -w apps/foxly-backend",
     "build": "npm run build -ws --if-present",
+    "build:backend": "npm run build -w packages/shared-types && npm run build -w apps/foxly-backend",
     "typecheck": "npm run typecheck -ws --if-present"
   }
 }
