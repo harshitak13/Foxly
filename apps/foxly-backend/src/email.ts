@@ -21,6 +21,7 @@ async function sendWithResend(input: SendEmailInput) {
         Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
         "Content-Type": "application/json",
       },
+      signal: AbortSignal.timeout(4000),
       body: JSON.stringify({
         from: emailFrom(),
         to: [input.to],
@@ -57,6 +58,9 @@ async function sendWithSmtp(input: SendEmailInput) {
       port,
       secure: port === 465,
       auth: { user, pass },
+      connectionTimeout: 4000,
+      greetingTimeout: 4000,
+      socketTimeout: 4000,
     });
 
     await transport.sendMail({

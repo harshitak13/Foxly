@@ -286,12 +286,9 @@ app.post("/api/device-link/:id/email-code", async (req, res) => {
   }
   const code = await store.setDeviceLinkEmailCode(session.id);
   if (!code) return res.status(410).json({ error: "This code can no longer be used" });
-  try {
-    await sendDeviceLinkCodeEmail(user.email, code);
-  } catch (error) {
+  sendDeviceLinkCodeEmail(user.email, code).catch((error) => {
     console.error(`[email] failed to send device-link code to ${user.email}`, error);
-    return res.status(503).json({ error: "Could not send the one-time code email. Check backend email configuration." });
-  }
+  });
   res.json({ ok: true });
 });
 
