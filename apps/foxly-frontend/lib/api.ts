@@ -1,20 +1,17 @@
+const PRODUCTION_BACKEND_URL = "https://foxly-backend.onrender.com";
+
 export function apiBase() {
   if (process.env.NEXT_PUBLIC_API_BASE) return process.env.NEXT_PUBLIC_API_BASE;
-  if (typeof window === "undefined") return "http://localhost:4000";
-  return "";
+  if (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")) {
+    return "http://localhost:4000";
+  }
+  return PRODUCTION_BACKEND_URL;
 }
 
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const isRelative = path.startsWith("/");
-  let url: string;
-
-  if (process.env.NEXT_PUBLIC_API_BASE) {
-    const base = process.env.NEXT_PUBLIC_API_BASE.replace(/\/$/, "");
-    url = isRelative ? `${base}${path}` : path;
-  } else {
-    const requestUrl = isRelative ? `/api-proxy${path}` : path;
-    url = `${apiBase()}${requestUrl}`;
-  }
+  const base = apiBase().replace(/\/$/, "");
+  const url = isRelative ? `${base}${path}` : path;
 
   const res = await fetch(url, {
     ...init,
