@@ -6,8 +6,17 @@ export function apiBase() {
 
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const isRelative = path.startsWith("/");
-  const requestUrl = isRelative ? `/api-proxy${path}` : path;
-  const res = await fetch(`${apiBase()}${requestUrl}`, {
+  let url: string;
+
+  if (process.env.NEXT_PUBLIC_API_BASE) {
+    const base = process.env.NEXT_PUBLIC_API_BASE.replace(/\/$/, "");
+    url = isRelative ? `${base}${path}` : path;
+  } else {
+    const requestUrl = isRelative ? `/api-proxy${path}` : path;
+    url = `${apiBase()}${requestUrl}`;
+  }
+
+  const res = await fetch(url, {
     ...init,
     credentials: "include",
     headers: {
