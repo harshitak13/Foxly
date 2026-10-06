@@ -42,6 +42,12 @@ app.use(cors({
 }));
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
+app.use((req, _res, next) => {
+  if (req.url.startsWith("/api-proxy/")) {
+    req.url = req.url.replace(/^\/api-proxy/, "");
+  }
+  next();
+});
 async function currentUser(req: express.Request) { const payload = await verifyJwt(req.cookies?.foxly_session); if (!payload) return null; const user = store.findUserById(payload.sub); return user && user.sessionVersion === (payload.version ?? 0) ? user : null; }
 function expectedOrigins(req: express.Request) {
   const requestOrigin = req.get("origin");
