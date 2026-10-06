@@ -9,9 +9,10 @@ export function apiBase() {
 }
 
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
-  const isRelative = path.startsWith("/");
-  const base = apiBase().replace(/\/$/, "");
-  const url = isRelative ? `${base}${path}` : path;
+  const cleanBase = apiBase().replace(/\/$/, "").replace(/\/api-proxy\/?$/, "");
+  const cleanPath = path.startsWith("/api-proxy") ? path.replace(/^\/api-proxy/, "") : path;
+  const isRelative = cleanPath.startsWith("/");
+  const url = isRelative ? `${cleanBase}${cleanPath}` : cleanPath;
 
   const res = await fetch(url, {
     ...init,
