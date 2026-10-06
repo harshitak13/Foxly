@@ -8,7 +8,9 @@ interface SendEmailInput {
 }
 
 function emailFrom() {
-  return process.env.EMAIL_FROM ?? "Foxly <no-reply@foxly.local>";
+  if (process.env.EMAIL_FROM) return process.env.EMAIL_FROM;
+  if (process.env.SMTP_USER) return `Foxly <${process.env.SMTP_USER}>`;
+  return "Foxly <no-reply@foxly.local>";
 }
 
 async function sendWithResend(input: SendEmailInput) {
@@ -48,7 +50,7 @@ async function sendWithSmtp(input: SendEmailInput) {
   const host = process.env.SMTP_HOST;
   const port = Number(process.env.SMTP_PORT ?? 587);
   const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
+  const pass = process.env.SMTP_PASS?.replace(/\s+/g, "");
 
   if (!host || !user || !pass) return false;
 
