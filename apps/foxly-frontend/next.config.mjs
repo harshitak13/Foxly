@@ -1,4 +1,4 @@
-const backendOrigin = process.env.BACKEND_ORIGIN ?? "http://localhost:4000";
+const backendOrigin = (process.env.BACKEND_ORIGIN || process.env.NEXT_PUBLIC_API_BASE || "https://foxly-backend.onrender.com").replace(/\/$/, "");
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
