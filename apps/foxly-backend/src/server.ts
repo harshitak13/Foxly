@@ -27,6 +27,12 @@ const origin = configuredOrigins[0];
 app.use(cors({
   origin(requestOrigin, callback) {
     if (!requestOrigin || configuredOrigins.includes(requestOrigin)) return callback(null, true);
+    try {
+      const hostname = new URL(requestOrigin).hostname;
+      if (hostname === "localhost" || hostname.endsWith(".vercel.app") || hostname.endsWith(".ngrok-free.app") || hostname.endsWith(".onrender.com")) {
+        return callback(null, true);
+      }
+    } catch (_) {}
     if (process.env.NODE_ENV !== "production" && /^https?:\/\/(localhost|127\.0\.0\.1|\d{1,3}(?:\.\d{1,3}){3})(:\d+)?$/.test(requestOrigin)) {
       return callback(null, true);
     }
